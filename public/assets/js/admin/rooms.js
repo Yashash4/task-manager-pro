@@ -108,8 +108,6 @@ let currentRoom = null;
     e.preventDefault();
 
     const name = DOM.id('roomName')?.value.trim();
-    const description = DOM.id('roomDescription')?.value.trim();
-
     if (!name) {
       Toast.error('Room name is required');
       return;
@@ -120,20 +118,33 @@ let currentRoom = null;
       const { data: code, error: codeError } = await supabase.rpc('generate_room_code');
       if (codeError) throw codeError;
 
-      // Create room
-      const { error: createError } = await supabase
+      // Create room and get its data back
+      const { data: newRoom, error: createError } = await supabase
         .from('rooms')
         .insert([{
           name,
           current_code: code,
           created_by: currentProfile.id
-        }]);
+        }])
+        .select()
+        .single(); // Use .single() to get the new room object
 
       if (createError) throw createError;
+      if (!newRoom) throw new Error('Failed to get new room details.');
+
+      // **THIS IS THE FIX:** Update the admin's profile with the new room ID
+      const { error: updateAdminError } = await supabase
+        .from('users_info')
+        .update({ room_id: newRoom.id })
+        .eq('id', currentProfile.id);
+
+      if (updateAdminError) throw updateAdminError;
 
       Toast.success('Room created successfully!');
       DOM.id('createRoomForm').reset();
-      await init();
+      
+      // Reload all data to reflect the changes
+      await init(); 
 
     } catch (error) {
       console.error('Create room error:', error);
