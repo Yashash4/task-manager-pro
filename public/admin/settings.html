@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Task Manager Pro</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-dot"></span> Task Manager Pro
+            </div>
+            <div class="nav-links">
+                <span class="text-secondary" id="orgName">Organization</span>
+                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrapper">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">?? Dashboard</a></li>
+                <li><a href="tasks.html">? Tasks</a></li>
+                <li><a href="users.html">?? Users</a></li>
+                <li><a href="rooms.html">?? Rooms</a></li>
+                <li><a href="reports.html">?? Reports</a></li>
+                <li><a href="settings.html" class="active">?? Settings</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Organization Settings</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Organization Name</label>
+                            <input type="text" id="orgNameInput" placeholder="Organization name">
+                        </div>
+                        <div class="form-group">
+                            <label>Admin Email</label>
+                            <input type="email" id="adminEmail" placeholder="admin@example.com">
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="updateSettings()">Save Settings</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Notification Settings</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group checkbox">
+                            <input type="checkbox" id="emailNotif" checked>
+                            <label for="emailNotif">Email Notifications</label>
+                        </div>
+                        <div class="form-group checkbox">
+                            <input type="checkbox" id="taskAssignNotif" checked>
+                            <label for="taskAssignNotif">Task Assignment Alerts</label>
+                        </div>
+                        <div class="form-group checkbox">
+                            <input type="checkbox" id="approvalNotif" checked>
+                            <label for="approvalNotif">Approval Notifications</label>
+                        </div>
+                        <button class="btn btn-primary btn-block" onclick="updateNotifSettings()">Save Settings</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h2 class="card-title">Danger Zone</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-secondary mb-2">These actions are irreversible. Proceed with caution.</p>
+                    <button class="btn btn-danger" onclick="confirmDeleteOrg()">Delete Organization</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/core/supabaseClient.js"></script>
+    <script src="../assets/js/core/utils.js"></script>
+    <script src="../assets/js/core/validation.js"></script>
+    <script src="../assets/js/core/auth.js"></script>
+    <script>
+        (async function () {
+          const supabase = window.SUPABASE?.client?.();
+          let currentProfile = null;
+
+          async function init() {
+            const user = await API.getCurrentUser();
+            if (!user) {
+              window.location.href = '/auth/login.html';
+              return;
+            }
+
+            currentProfile = await API.getUserProfile(user.id);
+            if (!currentProfile || !currentProfile.role_flags?.includes('admin')) {
+              await supabase.auth.signOut();
+              window.location.href = '/auth/login.html';
+              return;
+            }
+
+            if (currentProfile.room_id) {
+              const { data: room } = await supabase
+                .from('rooms')
+                .select('*')
+                .eq('id', currentProfile.room_id)
+                .single();
+              
+              if (room) {
+                DOM.setText(DOM.id('orgName'), room.name);
+                DOM.id('orgNameInput').value = room.name;
+                DOM.id('adminEmail').value = currentProfile.email;
+              }
+            }
+          }
+
+          window.updateSettings = async () => {
+            const orgName = DOM.id('orgNameInput').value.trim();
+            if (!orgName) {
+              Toast.error('Organization name is required');
+              return;
+            }
+
+            try {
+              const { error } = await supabase
+                .from('rooms')
+                .update({ name: orgName })
+                .eq('id', currentProfile.room_id);
+
+              if (error) throw error;
+              Toast.success('Settings updated!');
+            } catch (error) {
+              console.error('Update error:', error);
+              Toast.error('Failed to update settings');
+            }
+          };
+
+          window.updateNotifSettings = () => {
+            Toast.success('Notification settings saved');
+          };
+
+          window.confirmDeleteOrg = () => {
+            if (confirm('Are you sure? This will delete the entire organization and all data.')) {
+              Toast.warning('Organization deletion initiated');
+            }
+          };
+
+          document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>

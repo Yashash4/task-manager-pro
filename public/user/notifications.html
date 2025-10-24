@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Task Manager Pro</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-dot"></span> Task Manager Pro
+            </div>
+            <div class="nav-links">
+                <span class="text-secondary" id="userName">User</span>
+                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrapper">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">?? Dashboard</a></li>
+                <li><a href="tasks.html">? My Tasks</a></li>
+                <li><a href="notifications.html" class="active">?? Notifications</a></li>
+                <li><a href="profile.html">?? Profile</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="card">
+                <div class="card-header flex-between">
+                    <h1 class="card-title">Notifications</h1>
+                    <button class="btn btn-secondary btn-sm" onclick="markAllAsRead()">Mark All as Read</button>
+                </div>
+                <div class="card-body" id="notificationsContainer">
+                    <p class="text-muted">Loading notifications...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/core/supabaseClient.js"></script>
+    <script src="../assets/js/core/utils.js"></script>
+    <script src="../assets/js/core/validation.js"></script>
+    <script src="../assets/js/core/auth.js"></script>
+    <script>
+        (async function () {
+          const supabase = window.SUPABASE?.client?.();
+          let currentProfile = null;
+
+          async function init() {
+            const user = await API.getCurrentUser();
+            if (!user) {
+              window.location.href = '/auth/login.html';
+              return;
+            }
+
+            currentProfile = await API.getUserProfile(user.id);
+            if (!currentProfile) {
+              await supabase.auth.signOut();
+              window.location.href = '/auth/login.html';
+              return;
+            }
+
+            DOM.setText(DOM.id('userName'), currentProfile.username);
+            loadNotifications();
+          }
+
+          async function loadNotifications() {
+            try {
+              const { data: notifications } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', currentProfile.id)
+                .order('created_at', { ascending: false });
+
+              const container = DOM.id('notificationsContainer');
+
+              if (!notifications || notifications.length === 0) {
+                DOM.setHTML(container, '<p class="text-muted">No notifications</p>');
+                return;
+              }
+
+              const html = notifications.map(notif => \
+                <div style="padding: 1rem; background-color: var(--bg-darker); border-left: 4px solid var(--primary-color); border-radius: var(--radius-md); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">\</div>
+                    <div class="text-muted" style="font-size: 0.85rem;">\</div>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" onclick="markAsRead('\')">Read</button>
+                </div>
+              \).join('');
+
+              DOM.setHTML(container, html);
+
+            } catch (error) {
+              console.error('Load notifications error:', error);
+            }
+          }
+
+          window.markAsRead = async (notifId) => {
+            try {
+              await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('id', notifId);
+              
+              await loadNotifications();
+            } catch (error) {
+              console.error('Mark as read error:', error);
+            }
+          };
+
+          window.markAllAsRead = async () => {
+            try {
+              await supabase
+                .from('notifications')
+                .update({ is_read: true })
+                .eq('user_id', currentProfile.id)
+                .eq('is_read', false);
+              
+              await loadNotifications();
+              Toast.success('All notifications marked as read');
+            } catch (error) {
+              console.error('Mark all as read error:', error);
+            }
+          };
+
+          document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>

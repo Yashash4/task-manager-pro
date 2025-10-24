@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Task Manager Pro</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-dot"></span> Task Manager Pro
+            </div>
+            <div class="nav-links">
+                <span class="text-secondary" id="orgName">Organization</span>
+                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html" class="active">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ Tasks</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="rooms.html">🏢 Rooms</a></li>
+                <li><a href="reports.html">📈 Reports</a></li>
+                <li><a href="settings.html">⚙️ Settings</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="card-title">Admin Dashboard</h1>
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-4" id="statsGrid">
+                        <!-- Stats will load here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-2 mt-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Recent Tasks</h2>
+                    </div>
+                    <div id="recentTasks">Loading...</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Team Members</h2>
+                    </div>
+                    <div id="teamMembers">Loading...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/core/supabaseClient.js"></script>
+    <script src="../assets/js/core/utils.js"></script>
+    <script src="../assets/js/core/validation.js"></script>
+    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/admin/dashboard.js"></script>
+</body>
+</html>

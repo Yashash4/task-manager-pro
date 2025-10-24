@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks - Task Manager Pro</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-dot"></span> Task Manager Pro
+            </div>
+            <div class="nav-links">
+                <span class="text-secondary" id="orgName">Organization</span>
+                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrapper">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">?? Dashboard</a></li>
+                <li><a href="tasks.html" class="active">? Tasks</a></li>
+                <li><a href="users.html">?? Users</a></li>
+                <li><a href="rooms.html">?? Rooms</a></li>
+                <li><a href="reports.html">?? Reports</a></li>
+                <li><a href="settings.html">?? Settings</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="card">
+                <div class="card-header flex-between">
+                    <h1 class="card-title">Tasks Management</h1>
+                    <button class="btn btn-primary" onclick="openCreateTaskModal()">+ Create Task</button>
+                </div>
+                <div class="card-body">
+                    <div class="flex mb-2">
+                        <input type="text" placeholder="Search tasks..." id="taskSearch" class="flex-1" style="margin-right: 10px;">
+                        <select id="taskStatusFilter" style="min-width: 150px; margin-right: 10px;">
+                            <option value="">All Status</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="submitted">Submitted</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <table class="table" id="tasksTable">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>Title</th>
+                                <th>Assigned To</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksBody">
+                            <tr><td colspan="7" class="text-center">Loading tasks...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Task Modal -->
+    <div class="modal-overlay hidden" id="createTaskModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Create New Task</h2>
+                <button onclick="closeCreateTaskModal()" class="btn btn-secondary btn-sm">?</button>
+            </div>
+            <div class="modal-body">
+                <form id="createTaskForm">
+                    <div class="form-group">
+                        <label>Task Title</label>
+                        <input type="text" id="taskTitle" placeholder="Enter task title" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="taskDescription" placeholder="Task description..."></textarea>
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label>Assign To</label>
+                            <select id="taskAssignTo" required>
+                                <option value="">Select User</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select id="taskPriority" required>
+                                <option value="low">Low</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="taskDueDate" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeCreateTaskModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="submitCreateTask()" class="btn btn-primary">Create Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/core/supabaseClient.js"></script>
+    <script src="../assets/js/core/utils.js"></script>
+    <script src="../assets/js/core/validation.js"></script>
+    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/admin/tasks.js"></script>
+</body>
+</html>
