@@ -85,15 +85,16 @@
                 return;
               }
 
-              const html = notifications.map(notif => \
-                <div style="padding: 1rem; background-color: var(--bg-darker); border-left: 4px solid var(--primary-color); border-radius: var(--radius-md); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+              // ✅ FIXED: Replaced backslash with backticks for template literal
+              const html = notifications.map(notif => `
+                <div style="padding: 1rem; background-color: ${notif.is_read ? 'var(--bg-dark)' : 'var(--bg-darker)'}; border-left: 4px solid var(--primary-color); border-radius: var(--radius-md); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
                   <div>
-                    <div style="font-weight: 600; margin-bottom: 0.25rem;">\</div>
-                    <div class="text-muted" style="font-size: 0.85rem;">\</div>
+                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${notif.message}</div>
+                    <div class="text-muted" style="font-size: 0.85rem;">${new Date(notif.created_at).toLocaleString()}</div>
                   </div>
-                  <button class="btn btn-secondary btn-sm" onclick="markAsRead('\')">Read</button>
+                  ${!notif.is_read ? `<button class="btn btn-secondary btn-sm" onclick="markAsRead('${notif.id}')">Mark Read</button>` : ''}
                 </div>
-              \).join('');
+              `).join('');
 
               DOM.setHTML(container, html);
 

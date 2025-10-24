@@ -148,15 +148,20 @@ on rooms for insert
 to public
 with check (is_admin(auth.uid()) and created_by = auth.uid());
 
+-- ✅ FIXED POLICY
 drop policy if exists \"Users can view their room\" on rooms;
-create policy \"Users can view their room\"
+drop policy if exists \"Users and Admins can view rooms\" on rooms;
+create policy \"Users and Admins can view rooms\"
 on rooms for select
 to public
 using (
-  id = (
-    select room_id from users_info where id = auth.uid()
-  )
+  -- Users can view the room they belong to
+  (id = (select room_id from users_info where id = auth.uid()))
+  OR
+  -- Admins can view all rooms
+  is_admin(auth.uid())
 );
+
 
 -- USERS_INFO POLICIES
 drop policy if exists \"Allow user signup\" on users_info;
@@ -232,4 +237,3 @@ create policy \"Users can update own notifications\"
 on notifications for update
 to public
 using (user_id = auth.uid());
-
