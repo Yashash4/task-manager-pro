@@ -24,7 +24,7 @@ create table if not exists users_info (
   username text not null,
   email text not null,
   room_id uuid references rooms(id),
-  role_flags jsonb default '[\"user\"]'::jsonb,
+  role_flags jsonb default '["user"]'::jsonb,
   permissions jsonb default '{}'::jsonb,
   approved boolean default false,
   joined_at timestamptz default now(),
@@ -114,10 +114,10 @@ create index if not exists idx_rooms_history_rotated_at on rooms_history(rotated
 
 -- Generate room code
 create or replace function generate_room_code()
-returns text language sql as \$\$
+returns text language sql as $$
   select string_agg(substr('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', floor(random() * 36)::int + 1, 1), '')
   from generate_series(1, 6);
-\$\$;
+$$;
 
 -- Check if user is admin
 create or replace function is_admin(user_id uuid)
@@ -126,11 +126,11 @@ language sql
 security definer
 set search_path = public
 stable
-as \$\$
-  select coalesce((role_flags @> '[\"admin\"]'::jsonb or role_flags @> '[\"super_admin\"]'::jsonb), false)
+as $$
+  select coalesce((role_flags @> '["admin"]'::jsonb or role_flags @> '["super_admin"]'::jsonb), false)
   from users_info
   where id = user_id;
-\$\$;
+$$;
 
 -- ========== ROW LEVEL SECURITY ==========
 
@@ -142,98 +142,93 @@ alter table notifications enable row level security;
 alter table rooms_history enable row level security;
 
 -- ROOMS POLICIES
-drop policy if exists \"Admins can create rooms\" on rooms;
-create policy \"Admins can create rooms\"
+drop policy if exists "Admins can create rooms" on rooms;
+create policy "Admins can create rooms"
 on rooms for insert
 to public
 with check (is_admin(auth.uid()) and created_by = auth.uid());
 
--- ✅ FIXED POLICY
-drop policy if exists \"Users can view their room\" on rooms;
-drop policy if exists \"Users and Admins can view rooms\" on rooms;
-create policy \"Users and Admins can view rooms\"
+drop policy if exists "Users and Admins can view rooms" on rooms;
+create policy "Users and Admins can view rooms"
 on rooms for select
 to public
 using (
-  -- Users can view the room they belong to
   (id = (select room_id from users_info where id = auth.uid()))
   OR
-  -- Admins can view all rooms
   is_admin(auth.uid())
 );
 
-
 -- USERS_INFO POLICIES
-drop policy if exists \"Allow user signup\" on users_info;
-create policy \"Allow user signup\"
+drop policy if exists "Allow user signup" on users_info;
+create policy "Allow user signup"
 on users_info for insert
 to public
 with check (true);
 
-drop policy if exists \"Users can view own profile\" on users_info;
-create policy \"Users can view own profile\"
+drop policy if exists "Users can view own profile" on users_info;
+create policy "Users can view own profile"
 on users_info for select
 to public
 using (auth.uid() = id);
 
-drop policy if exists \"Admins can view users in room\" on users_info;
-create policy \"Admins can view users in room\"
+drop policy if exists "Admins can view users in room" on users_info;
+create policy "Admins can view users in room"
 on users_info for select
 to public
 using (is_admin(auth.uid()));
 
-drop policy if exists \"Admins can update users\" on users_info;
-create policy \"Admins can update users\"
+drop policy if exists "Admins can update users" on users_info;
+create policy "Admins can update users"
 on users_info for update
 to public
 using (is_admin(auth.uid()));
 
 -- TASKS POLICIES
-drop policy if exists \"Admins can create tasks\" on tasks;
-create policy \"Admins can create tasks\"
+drop policy if exists "Admins can create tasks" on tasks;
+create policy "Admins can create tasks"
 on tasks for insert
 to public
 with check (is_admin(auth.uid()));
 
-drop policy if exists \"Users can view assigned tasks\" on tasks;
-create policy \"Users can view assigned tasks\"
+drop policy if exists "Users can view assigned tasks" on tasks;
+create policy "Users can view assigned tasks"
 on tasks for select
 to public
 using (assigned_to = auth.uid());
 
-drop policy if exists \"Admins can view all tasks\" on tasks;
-create policy \"Admins can view all tasks\"
+drop policy if exists "Admins can view all tasks" on tasks;
+create policy "Admins can view all tasks"
 on tasks for select
 to public
 using (is_admin(auth.uid()));
 
-drop policy if exists \"Users can update assigned tasks\" on tasks;
-create policy \"Users can update assigned tasks\"
+drop policy if exists "Users can update assigned tasks" on tasks;
+create policy "Users can update assigned tasks"
 on tasks for update
 to public
 using (assigned_to = auth.uid());
 
-drop policy if exists \"Admins can update tasks\" on tasks;
-create policy \"Admins can update tasks\"
+drop policy if exists "Admins can update tasks" on tasks;
+create policy "Admins can update tasks"
 on tasks for update
 to public
 using (is_admin(auth.uid()));
 
 -- NOTIFICATIONS POLICIES
-drop policy if exists \"Users can view own notifications\" on notifications;
-create policy \"Users can view own notifications\"
+drop policy if exists "Users can view own notifications" on notifications;
+create policy "Users can view own notifications"
 on notifications for select
 to public
 using (user_id = auth.uid());
 
-drop policy if exists \"System can insert notifications\" on notifications;
-create policy \"System can insert notifications\"
+drop policy if exists "System can insert notifications" on notifications;
+create policy "System can insert notifications"
 on notifications for insert
 to public
 with check (true);
 
-drop policy if exists \"Users can update own notifications\" on notifications;
-create policy \"Users can update own notifications\"
+drop policy if exists "Users can update own notifications" on notifications;
+create policy "Users can update own notifications"
 on notifications for update
 to public
 using (user_id = auth.uid());

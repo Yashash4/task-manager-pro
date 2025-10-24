@@ -47,14 +47,20 @@ let currentProfile = null;
   }
 
   async function loadUsers() {
+    const tbody = DOM.id('usersBody');
     try {
-      if (!currentProfile.room_id) return;
+      if (!currentProfile.room_id) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Please create a room to see users.</td></tr>';
+        return;
+      }
 
-      const { data: users } = await supabase
+      const { data: users, error } = await supabase
         .from('users_info')
         .select('id, username, email, role_flags, approved, joined_at')
         .eq('room_id', currentProfile.room_id)
         .order('joined_at', { ascending: false });
+
+      if (error) throw error;
 
       window.allUsers = users || [];
       renderUsers(window.allUsers);
@@ -62,6 +68,7 @@ let currentProfile = null;
     } catch (error) {
       console.error('Load users error:', error);
       Toast.error('Failed to load users');
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">An error occurred while loading users.</td></tr>';
     }
   }
 

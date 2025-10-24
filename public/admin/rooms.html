@@ -22,18 +22,17 @@
     <div class="wrapper">
         <aside class="sidebar">
             <ul class="sidebar-menu">
-                <li><a href="dashboard.html">?? Dashboard</a></li>
-                <li><a href="tasks.html">? Tasks</a></li>
-                <li><a href="users.html">?? Users</a></li>
-                <li><a href="rooms.html" class="active">?? Rooms</a></li>
-                <li><a href="reports.html">?? Reports</a></li>
-                <li><a href="settings.html">?? Settings</a></li>
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ Tasks</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="rooms.html" class="active">🏢 Rooms</a></li>
+                <li><a href="reports.html">📈 Reports</a></li>
+                <li><a href="settings.html">⚙️ Settings</a></li>
             </ul>
         </aside>
 
         <main class="main-content">
             <div class="grid grid-2">
-                <!-- Create Room -->
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Create New Room</h2>
@@ -53,7 +52,6 @@
                     </div>
                 </div>
 
-                <!-- Current Room Info -->
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Current Room</h2>
@@ -64,7 +62,6 @@
                 </div>
             </div>
 
-            <!-- Room Code History -->
             <div class="card mt-3">
                 <div class="card-header">
                     <h2 class="card-title">Room Code History</h2>
@@ -88,12 +85,11 @@
         </main>
     </div>
 
-    <!-- Rotate Code Modal -->
     <div class="modal-overlay hidden" id="rotateCodeModal">
         <div class="modal">
             <div class="modal-header">
                 <h2>Rotate Room Code</h2>
-                <button onclick="closeRotateModal()" class="btn btn-secondary btn-sm">?</button>
+                <button onclick="closeRotateModal()" class="btn btn-secondary btn-sm">X</button>
             </div>
             <div class="modal-body">
                 <p class="text-secondary mb-2">This will generate a new room code. Current members will not be affected.</p>

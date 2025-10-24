@@ -22,12 +22,12 @@
     <div class="wrapper">
         <aside class="sidebar">
             <ul class="sidebar-menu">
-                <li><a href="dashboard.html">?? Dashboard</a></li>
-                <li><a href="tasks.html">? Tasks</a></li>
-                <li><a href="users.html">?? Users</a></li>
-                <li><a href="rooms.html">?? Rooms</a></li>
-                <li><a href="reports.html">?? Reports</a></li>
-                <li><a href="settings.html" class="active">?? Settings</a></li>
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ Tasks</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="rooms.html">🏢 Rooms</a></li>
+                <li><a href="reports.html">📈 Reports</a></li>
+                <li><a href="settings.html" class="active">⚙️ Settings</a></li>
             </ul>
         </aside>
 
@@ -44,7 +44,7 @@
                         </div>
                         <div class="form-group">
                             <label>Admin Email</label>
-                            <input type="email" id="adminEmail" placeholder="admin@example.com">
+                            <input type="email" id="adminEmail" placeholder="admin@example.com" disabled>
                         </div>
                         <button class="btn btn-primary btn-block" onclick="updateSettings()">Save Settings</button>
                     </div>
@@ -138,6 +138,7 @@
 
               if (error) throw error;
               Toast.success('Settings updated!');
+              DOM.setText(DOM.id('orgName'), orgName); // Update navbar name
             } catch (error) {
               console.error('Update error:', error);
               Toast.error('Failed to update settings');
@@ -145,12 +146,12 @@
           };
 
           window.updateNotifSettings = () => {
-            Toast.success('Notification settings saved');
+            Toast.info('Notification settings feature coming soon.');
           };
 
           window.confirmDeleteOrg = () => {
-            if (confirm('Are you sure? This will delete the entire organization and all data.')) {
-              Toast.warning('Organization deletion initiated');
+            if (confirm('Are you sure? This will delete the entire organization and all data. This action cannot be undone.')) {
+              Toast.error('Organization deletion feature coming soon.');
             }
           };
 

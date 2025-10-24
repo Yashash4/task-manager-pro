@@ -22,12 +22,12 @@
     <div class="wrapper">
         <aside class="sidebar">
             <ul class="sidebar-menu">
-                <li><a href="dashboard.html">?? Dashboard</a></li>
-                <li><a href="tasks.html">? Tasks</a></li>
-                <li><a href="users.html">?? Users</a></li>
-                <li><a href="rooms.html">?? Rooms</a></li>
-                <li><a href="reports.html" class="active">?? Reports</a></li>
-                <li><a href="settings.html">?? Settings</a></li>
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ Tasks</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="rooms.html">🏢 Rooms</a></li>
+                <li><a href="reports.html" class="active">📈 Reports</a></li>
+                <li><a href="settings.html">⚙️ Settings</a></li>
             </ul>
         </aside>
 
@@ -35,7 +35,7 @@
             <div class="card">
                 <div class="card-header flex-between">
                     <h1 class="card-title">Reports & Analytics</h1>
-                    <button class="btn btn-primary" onclick="exportReport()">?? Export CSV</button>
+                    <button class="btn btn-primary" onclick="exportReport()">Export CSV</button>
                 </div>
                 <div class="card-body">
                     <div class="grid grid-2">
@@ -69,23 +69,23 @@
                     <div id="statusDistribution">
                         <ul style="list-style: none;">
                             <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
-                                <span>?? Assigned</span>
+                                <span>Assigned</span>
                                 <strong id="statusAssigned">0</strong>
                             </li>
                             <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
-                                <span>? In Progress</span>
+                                <span>In Progress</span>
                                 <strong id="statusInProgress">0</strong>
                             </li>
                             <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
-                                <span>?? Submitted</span>
+                                <span>Submitted</span>
                                 <strong id="statusSubmitted">0</strong>
                             </li>
                             <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
-                                <span>? Approved</span>
+                                <span>Approved</span>
                                 <strong id="statusApproved">0</strong>
                             </li>
                             <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
-                                <span>? Rejected</span>
+                                <span>Rejected</span>
                                 <strong id="statusRejected">0</strong>
                             </li>
                         </ul>
@@ -182,7 +182,9 @@
               };
 
               tasks.forEach(task => {
-                statusCounts[task.status]++;
+                if (statusCounts.hasOwnProperty(task.status)) {
+                    statusCounts[task.status]++;
+                }
               });
 
               const totalTasks = tasks.length;
@@ -196,10 +198,10 @@
               DOM.id('statusApproved').textContent = statusCounts.approved;
               DOM.id('statusRejected').textContent = statusCounts.rejected;
 
-              DOM.id('completionRateChart').innerHTML = \
-                <div style="font-size: 3rem; font-weight: 700; color: var(--primary-color);">\%</div>
-                <p class="text-muted">\ of \ tasks completed</p>
-              \;
+              DOM.id('completionRateChart').innerHTML = `
+                <div style="font-size: 3rem; font-weight: 700; color: var(--primary-color);">${completionRate}%</div>
+                <p class="text-muted">${completedTasks} of ${totalTasks} tasks completed</p>
+              `;
 
               await loadTeamPerformance(tasks);
 
@@ -227,17 +229,17 @@
                 const inProgress = userTasks.filter(t => t.status === 'in_progress').length;
                 const completionRate = userTasks.length > 0 ? Math.round((completed / userTasks.length) * 100) : 0;
 
-                return \
+                return `
                   <tr>
-                    <td><strong>\</strong></td>
-                    <td>\</td>
-                    <td>\</td>
-                    <td>\</td>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${userTasks.length}</td>
+                    <td>${completed}</td>
+                    <td>${inProgress}</td>
                     <td>
-                      <span style="color: var(--primary-color); font-weight: 600;">\%</span>
+                      <span style="color: var(--primary-color); font-weight: 600;">${completionRate}%</span>
                     </td>
                   </tr>
-                \;
+                `;
               }).join('');
 
               tbody.innerHTML = html;
