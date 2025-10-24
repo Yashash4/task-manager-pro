@@ -104,7 +104,7 @@ let currentRoom = null;
     }
   }
 
-  async function handleCreateRoom(e) {
+async function handleCreateRoom(e) {
     e.preventDefault();
 
     const name = DOM.id('roomName')?.value.trim();
