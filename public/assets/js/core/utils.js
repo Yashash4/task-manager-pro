@@ -1,197 +1,124 @@
 // ==========================================
-// UTILITY FUNCTIONS
+// UTILITY FUNCTIONS (UNIFIED - FINAL)
 // ==========================================
 
 // DOM Helpers
 const DOM = {
   id: (id) => document.getElementById(id),
-  class: (className) => document.querySelectorAll('.' + className),
   query: (selector) => document.querySelector(selector),
   queryAll: (selector) => document.querySelectorAll(selector),
-  create: (tag, classes = '') => {
-    const el = document.createElement(tag);
-    if (classes) el.className = classes;
-    return el;
-  },
-  remove: (el) => el?.remove(),
   hide: (el) => el?.classList.add('hidden'),
   show: (el) => el?.classList.remove('hidden'),
-  toggle: (el, className) => el?.classList.toggle(className),
   addClass: (el, className) => el?.classList.add(className),
   removeClass: (el, className) => el?.classList.remove(className),
-  hasClass: (el, className) => el?.classList.contains(className),
   setText: (el, text) => { if (el) el.textContent = text; },
   setHTML: (el, html) => { if (el) el.innerHTML = html; },
   on: (el, event, handler) => el?.addEventListener(event, handler),
-  off: (el, event, handler) => el?.removeEventListener(event, handler),
-  attr: (el, name, value) => {
-    if (value === undefined) return el?.getAttribute(name);
-    el?.setAttribute(name, value);
-  },
 };
 
 // Toast Notifications
 const Toast = {
-  show: (message, type = 'info', duration = 3000) => {
+  show: (message, type = 'info', duration = 3500) => {
+    document.querySelectorAll('.toast').forEach(t => t.remove()); // Clear previous toasts
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
-    
-    setTimeout(() => {
-      toast.style.animation = 'slideOut 0.3s ease-out forwards';
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
+    setTimeout(() => { toast.remove(); }, duration);
   },
-  
   success: (message) => Toast.show(message, 'success'),
   error: (message) => Toast.show(message, 'error'),
   warning: (message) => Toast.show(message, 'warning'),
   info: (message) => Toast.show(message, 'info'),
 };
 
-// Validation
-const Validator = {
-  email: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-  
-  password: (password) => {
-    return password.length >= 8 && 
-           /[A-Z]/.test(password) && 
-           /[0-9]/.test(password) &&
-           /[!@#$%^&*]/.test(password);
-  },
-  
-  roomCode: (code) => /^[A-Z0-9]{6}$/.test(code),
-  
-  username: (username) => username.length >= 3 && username.length <= 50,
-  
-  required: (value) => value?.toString().trim().length > 0,
-};
-
 // API Helper
 const API = {
-  supabase: () => window.SUPABASE.client(),
+  supabase: () => window.SUPABASE?.client?.(), // Use optional chaining
   
   getCurrentUser: async () => {
+    const supabase = API.supabase();
+    if (!supabase) return null; // Check if supabase client exists
     try {
-      const { data: { user } } = await API.supabase().auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
       return user;
     } catch (error) {
       console.error('Get user error:', error);
+      // Don't redirect here, let pages handle unauthorized access
       return null;
     }
   },
   
   getUserProfile: async (userId) => {
+    const supabase = API.supabase();
+    if (!supabase || !userId) return null;
     try {
-      const { data, error } = await API.supabase()
+      const { data, error } = await supabase
         .from('users_info')
         .select('*')
         .eq('id', userId)
-        .single();
+        .single(); // Use single() for one expected row
       
-      if (error) throw error;
-      return data;
+      if (error && error.code !== 'PGRST116') { // Ignore "No rows found" error code
+          throw error;
+      }
+      return data; // Returns null if no profile found, handled by callers
     } catch (error) {
       console.error('Get profile error:', error);
+      Toast.error('Could not fetch user profile.');
       return null;
     }
   },
-  
-  logout: async () => {
-    try {
-      await API.supabase().auth.signOut();
-      window.location.href = '/index.html';
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  },
-};
-
-// Storage
-const Storage = {
-  set: (key, value) => {
-    try {
-      sessionStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error('Storage set error:', error);
-    }
-  },
-  
-  get: (key) => {
-    try {
-      const value = sessionStorage.getItem(key);
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      console.error('Storage get error:', error);
-      return null;
-    }
-  },
-  
-  remove: (key) => sessionStorage.removeItem(key),
-  
-  clear: () => sessionStorage.clear(),
-};
-
-// Password Strength Indicator
-const PasswordStrength = {
-  calculate: (password) => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[!@#$%^&*]/.test(password)) strength++;
-    
-    return {
-      score: strength,
-      level: strength <= 2 ? 'Weak' : strength <= 4 ? 'Medium' : 'Strong',
-      color: strength <= 2 ? '#ef4444' : strength <= 4 ? '#f59e0b' : '#22c55e'
-    };
-  },
-  
-  update: (inputId, displayId) => {
-    const input = DOM.id(inputId);
-    const display = DOM.id(displayId);
-    
-    if (input && display) {
-      const strength = PasswordStrength.calculate(input.value);
-      DOM.setText(display, strength.level);
-      display.style.color = strength.color;
-    }
-  }
 };
 
 // Time Helpers
 const TimeHelper = {
-  formatDate: (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  formatDate: (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-GB', { // Use en-GB for dd/mm/yyyy
+        year: 'numeric', month: '2-digit', day: '2-digit'
+      });
+    } catch (e) { return 'Invalid Date'; }
   },
-  
-  formatTime: (date) => {
-    return new Date(date).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  formatDateTime: (dateString) => {
+      if (!dateString) return 'N/A';
+      try {
+          return new Date(dateString).toLocaleString('en-GB'); // Locale-sensitive date and time
+      } catch(e) { return 'Invalid Date'; }
   },
-  
-  formatDateTime: (date) => {
-    return `${TimeHelper.formatDate(date)} ${TimeHelper.formatTime(date)}`;
-  },
-  
-  isOverdue: (dueDate) => new Date(dueDate) < new Date(),
-  
-  daysUntil: (dueDate) => {
-    const now = new Date();
-    const due = new Date(dueDate);
-    const diff = due - now;
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  }
+  isOverdue: (dueDate) => dueDate && new Date(dueDate) < new Date().setHours(0,0,0,0), // Compare dates only
+};
+
+// Password Strength Calculator
+const PasswordStrength = {
+    calculate: (password) => {
+        let strength = 0;
+        if (!password) return { level: 'Required', color: '#ef4444' };
+        if (password.length >= 8) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++; // Broader special chars
+        
+        const levels = [
+            { level: 'Very Weak', color: '#ef4444' }, // 0 points
+            { level: 'Weak', color: '#f97316' },      // 1 point
+            { level: 'Medium', color: '#f59e0b' },    // 2 points
+            { level: 'Strong', color: '#84cc16' },    // 3 points
+            { level: 'Very Strong', color: '#22c55e'} // 4 points
+        ];
+        return levels[strength];
+    },
+    updateIndicator: (inputId, displayId) => {
+        const input = DOM.id(inputId);
+        const display = DOM.id(displayId);
+        if (input && display) {
+            const strength = PasswordStrength.calculate(input.value);
+            display.textContent = strength.level;
+            display.style.color = strength.color;
+        }
+    }
 };
 
 // Debounce Helper
@@ -205,12 +132,38 @@ const debounce = (func, delay) => {
 
 // Copy to Clipboard
 const copyToClipboard = async (text) => {
+  if (!navigator.clipboard) {
+      Toast.error('Clipboard API not available.'); // Fallback for older browsers might be needed
+      return;
+  }
   try {
     await navigator.clipboard.writeText(text);
     Toast.success('Copied to clipboard!');
   } catch (error) {
-    Toast.error('Failed to copy');
+    console.error('Copy error:', error);
+    Toast.error('Failed to copy text.');
   }
 };
 
 console.log('? Utilities loaded');
+
+// Add CSS for toast animation (if not already included)
+(function addToastStyles() {
+    if (document.getElementById('toast-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'toast-styles';
+    style.innerHTML = `
+      .toast {
+        position: fixed; bottom: 20px; right: 20px; padding: 1rem 1.5rem;
+        border-radius: 8px; color: var(--text-primary); font-weight: 600;
+        z-index: 2000; border-left: 4px solid var(--primary-color);
+        background: var(--bg-light); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        animation: toastSlideIn 0.3s ease-out;
+      }
+      .toast.success { border-left-color: var(--success-color); }
+      .toast.error { border-left-color: var(--danger-color); }
+      .toast.warning { border-left-color: var(--warning-color); }
+      @keyframes toastSlideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    `;
+    document.head.appendChild(style);
+})();
