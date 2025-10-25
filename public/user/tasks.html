@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Tasks - Task Manager</title>
-    <link rel="stylesheet" href="../assets/css/styles.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
 </head>
 <body>
     <header class="topbar">
@@ -21,11 +21,11 @@
 
         <div class="card">
             <div style="margin-bottom: 1rem;">
-                <input type="text" id="taskSearch" placeholder="?? Search tasks..." class="input">
+                <input type="text" id="taskSearch" placeholder="🔍 Search tasks..." class="input">
             </div>
 
             <div id="tasksContainer" style="display: grid; gap: 1rem;">
-                <p class="text-mut" style="text-align: center;">Loading tasks...</p>
+                <p class="text-muted" style="text-align: center;">Loading tasks...</p>
             </div>
         </div>
     </main>
@@ -33,26 +33,13 @@
     <!-- Task Detail Modal -->
     <div id="taskModal" class="modal-overlay" style="display: none;">
         <div class="modal">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--stroke);">
+            <div class="modal-header">
                 <h2 id="taskModalTitle">Task Details</h2>
-                <button class="btn secondary" onclick="closeTaskModal()" style="padding: 6px 12px;">?</button>
+                <button class="btn btn-secondary" onclick="closeTaskModal()" style="padding: 6px 12px;">✕</button>
             </div>
-            <div id="taskModalContent">Loading...</div>
+            <div class="modal-body" id="taskModalContent">Loading...</div>
         </div>
     </div>
-
-    <style>
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5); display: flex;
-            align-items: center; justify-content: center; z-index: 1000;
-        }
-        .modal {
-            background: var(--panel); border: 1px solid var(--stroke);
-            border-radius: 12px; padding: 2rem; width: 90%; max-width: 500px;
-            max-height: 90vh; overflow-y: auto;
-        }
-    </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="../assets/js/lib/supabaseClient.js"></script>
