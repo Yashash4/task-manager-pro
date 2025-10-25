@@ -3,117 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rooms Management - Task Manager Pro</title>
-    <link rel="stylesheet" href="../assets/css/main.css">
+    <title>Manage Rooms - Task Manager</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <span class="logo-dot"></span> Task Manager Pro
+    <header class="topbar">
+        <div class="brand"><span class="dot"></span> Task Manager</div>
+        <nav class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="users.html">Users</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="rooms.html" class="active">Rooms</a>
+            <a href="reports.html">Reports</a>
+            <a href="#" id="logoutBtn" data-logout>Logout</a>
+        </nav>
+    </header>
+
+    <main class="wrap">
+        <h1 class="h1">Organization Management</h1>
+
+        <div class="grid cols-2">
+            <div class="card">
+                <h2>Current Organization</h2>
+                <div id="currentOrgContainer">Loading...</div>
             </div>
-            <div class="nav-links">
-                <span class="text-secondary" id="orgName">Organization</span>
-                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+
+            <div class="card">
+                <h2>Room Code Management</h2>
+                <div id="codeManagementContainer">Loading...</div>
             </div>
         </div>
-    </nav>
 
-    <div class="wrapper">
-        <aside class="sidebar">
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html">📊 Dashboard</a></li>
-                <li><a href="tasks.html">✅ Tasks</a></li>
-                <li><a href="users.html">👥 Users</a></li>
-                <li><a href="rooms.html" class="active">🏢 Rooms</a></li>
-                <li><a href="reports.html">📈 Reports</a></li>
-                <li><a href="settings.html">⚙️ Settings</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <div class="grid grid-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Create New Room</h2>
-                    </div>
-                    <div class="card-body">
-                        <form id="createRoomForm">
-                            <div class="form-group">
-                                <label>Room Name</label>
-                                <input type="text" id="roomName" placeholder="e.g., Acme Corp Team" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Description (Optional)</label>
-                                <textarea id="roomDescription" placeholder="Room description..." style="min-height: 80px;"></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block">Create Room</button>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Current Room</h2>
-                    </div>
-                    <div class="card-body" id="currentRoomInfo">
-                        <p class="text-muted">Loading room information...</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h2 class="card-title">Room Code History</h2>
-                </div>
-                <div class="card-body">
-                    <table class="table" id="codeHistoryTable">
-                        <thead>
-                            <tr>
-                                <th>Old Code</th>
-                                <th>New Code</th>
-                                <th>Rotated By</th>
-                                <th>Date</th>
-                            </tr>
-                        </thead>
-                        <tbody id="codeHistoryBody">
-                            <tr><td colspan="4" class="text-center">Loading history...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <div class="modal-overlay hidden" id="rotateCodeModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Rotate Room Code</h2>
-                <button onclick="closeRotateModal()" class="btn btn-secondary btn-sm">X</button>
-            </div>
-            <div class="modal-body">
-                <p class="text-secondary mb-2">This will generate a new room code. Current members will not be affected.</p>
-                <div style="background-color: var(--bg-light); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
-                    <p class="text-muted" style="font-size: 0.9rem;">Current Code:</p>
-                    <p style="font-size: 1.5rem; font-weight: 700; font-family: monospace;" id="currentCodeDisplay">LOADING</p>
-                </div>
-                <p class="text-secondary mb-2">New code will be:</p>
-                <div style="background-color: var(--bg-light); padding: 1rem; border-radius: var(--radius-md);">
-                    <p style="font-size: 1.5rem; font-weight: 700; font-family: monospace; color: var(--primary-color);" id="newCodeDisplay">GENERATING...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeRotateModal()" class="btn btn-secondary">Cancel</button>
-                <button onclick="confirmRotateCode()" class="btn btn-danger">Rotate Code</button>
-            </div>
+        <div class="card" style="margin-top: 2rem;">
+            <h2>Code Rotation History</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Old Code</th>
+                        <th>New Code</th>
+                        <th>Rotated At</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr><td colspan="3" style="text-align: center;">Loading history...</td></tr>
+                </tbody>
+            </table>
         </div>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="../assets/js/core/supabaseClient.js"></script>
-    <script src="../assets/js/core/utils.js"></script>
-    <script src="../assets/js/core/validation.js"></script>
-    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/lib/supabaseClient.js"></script>
+    <script src="../assets/js/utility.js"></script>
+    <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/admin/rooms.js"></script>
 </body>
 </html>

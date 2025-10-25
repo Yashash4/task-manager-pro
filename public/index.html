@@ -3,69 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager Pro - Home</title>
-    <link rel="stylesheet" href="assets/css/main.css">
+    <title>Task Manager Pro - Professional Task Management</title>
+    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <span class="logo-dot"></span> Task Manager Pro
-            </div>
-            <div class="nav-links">
-                <a href="auth/login.html" class="btn btn-secondary">Login</a>
-                <a href="auth/signup.html" class="btn btn-primary">Sign Up</a>
-            </div>
-        </div>
-    </nav>
+    <header class="topbar">
+        <div class="brand"><span class="dot"></span> Task Manager Pro</div>
+        <nav class="nav">
+            <a href="login.html" class="btn secondary" style="margin-right: 0.5rem;">Login</a>
+            <a href="signup.html" class="btn">Sign Up</a>
+        </nav>
+    </header>
 
-    <main class="hero">
-        <div class="hero-content">
-            <h1>Professional Task Management</h1>
-            <p>Streamline your workflow with role-based task assignment, real-time approvals, and team collaboration.</p>
-            <div class="hero-buttons">
-                <a href="auth/signup.html" class="btn btn-primary btn-lg">Get Started</a>
-                <a href="#features" class="btn btn-secondary btn-lg">Learn More</a>
+    <main>
+        <section style="background: linear-gradient(135deg, var(--bg) 0%, var(--elev) 100%); padding: 4rem 2rem; text-align: center;">
+            <div class="wrap" style="max-width: 700px;">
+                <h1 class="h1" style="font-size: 2.5rem; margin-bottom: 1rem;">Professional Task Management</h1>
+                <p style="font-size: 1.1rem; color: var(--mut); margin-bottom: 2rem;">
+                    Streamline workflows, manage teams, and track progress with our powerful task management platform
+                </p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="signup.html" class="btn" style="padding: 14px 28px; font-size: 1.05rem;">Get Started Free</a>
+                    <a href="#features" class="btn secondary" style="padding: 14px 28px; font-size: 1.05rem;">Learn More</a>
+                </div>
             </div>
-        </div>
+        </section>
+
+        <section id="features" style="padding: 3rem 2rem; background: var(--bg);">
+            <div class="wrap">
+                <h2 style="text-align: center; font-size: 2rem; margin-bottom: 2rem; color: var(--brand);">Features</h2>
+                <div class="grid cols-2">
+                    <div class="card">
+                        <h3>?? Role-Based Access</h3>
+                        <p>Admin, Users, Approvers - complete control over permissions and workflows</p>
+                    </div>
+                    <div class="card">
+                        <h3>?? Task Lifecycle</h3>
+                        <p>From assignment to approval - complete task tracking and management</p>
+                    </div>
+                    <div class="card">
+                        <h3>?? Real-time Updates</h3>
+                        <p>Instant notifications and live updates for all team members</p>
+                    </div>
+                    <div class="card">
+                        <h3>?? Analytics</h3>
+                        <p>Detailed reports and performance metrics for your team</p>
+                    </div>
+                    <div class="card">
+                        <h3>?? Enterprise Security</h3>
+                        <p>Row-level security, encryption, and audit logging</p>
+                    </div>
+                    <div class="card">
+                        <h3>?? Fully Responsive</h3>
+                        <p>Works on desktop, tablet, and mobile devices</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <section id="features" class="features">
-        <div class="container">
-            <h2>Features</h2>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h3>?? Task Management</h3>
-                    <p>Create, assign, track, and approve tasks with ease</p>
-                </div>
-                <div class="feature-card">
-                    <h3>?? Role-Based Access</h3>
-                    <p>Admin, Approver, Creator, and User roles with custom permissions</p>
-                </div>
-                <div class="feature-card">
-                    <h3>?? Notifications</h3>
-                    <p>Real-time updates on task assignments and approvals</p>
-                </div>
-                <div class="feature-card">
-                    <h3>?? Analytics</h3>
-                    <p>Track completion rates and team performance metrics</p>
-                </div>
-                <div class="feature-card">
-                    <h3>?? Security</h3>
-                    <p>Enterprise-grade security with audit logging</p>
-                </div>
-                <div class="feature-card">
-                    <h3>?? Responsive</h3>
-                    <p>Works perfectly on desktop, tablet, and mobile</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <footer class="footer">
+    <footer style="background: var(--elev); padding: 2rem; text-align: center; color: var(--mut); border-top: 1px solid var(--stroke);">
         <p>&copy; 2025 Task Manager Pro. All rights reserved.</p>
     </footer>
 
-    <script src="assets/js/core/supabaseClient.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="assets/js/lib/supabaseClient.js"></script>
 </body>
 </html>

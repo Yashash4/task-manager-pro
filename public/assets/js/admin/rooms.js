@@ -1,225 +1,153 @@
-// ==========================================
-// ADMIN ROOMS MANAGEMENT
-// ==========================================
-
-let currentProfile = null;
-let currentRoom = null;
-
+// admin/rooms.js - Complete room management with code rotation
 (async function () {
-  const supabase = window.SUPABASE?.client?.();
-  if (!supabase) return;
+    const supabase = window.SUPABASE?.client?.();
+    if (!supabase) return;
 
-  async function init() {
-    try {
-      const user = await API.getCurrentUser();
-      if (!user) {
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    let currentProfile = null;
+    let currentRoom = null;
 
-      currentProfile = await API.getUserProfile(user.id);
-      if (!currentProfile || !currentProfile.role_flags?.includes('admin')) {
-        await supabase.auth.signOut();
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    async function init() {
+        try {
+            const auth = await Utils.api.checkAuth();
+            if (!auth) return;
 
-      // Set org name
-      if (currentProfile.room_id) {
-        const { data: room } = await supabase
-          .from('rooms')
-          .select('*')
-          .eq('id', currentProfile.room_id)
-          .single();
-        
-        if (room) {
-          currentRoom = room;
-          DOM.setText(DOM.id('orgName'), room.name);
-          displayCurrentRoom();
-          loadCodeHistory();
+            currentProfile = auth.profile;
+
+            if (!currentProfile.role_flags?.includes('admin')) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            if (currentProfile.room_id) {
+                await loadRoomInfo();
+                await loadCodeHistory();
+            }
+
+        } catch (error) {
+            console.error('Init error:', error);
         }
-      }
-
-      // Event listeners
-      DOM.on(DOM.id('createRoomForm'), 'submit', handleCreateRoom);
-
-    } catch (error) {
-      console.error('Init error:', error);
-      Toast.error('Failed to initialize');
-    }
-  }
-
-  function displayCurrentRoom() {
-    if (!currentRoom) return;
-
-    const container = DOM.id('currentRoomInfo');
-    DOM.setHTML(container, `
-      <div class="form-group">
-        <label>Room Name</label>
-        <input type="text" value="${currentRoom.name}" disabled>
-      </div>
-      <div class="form-group">
-        <label>Current Code</label>
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <input type="text" value="${currentRoom.current_code}" disabled style="flex: 1; font-size: 1.2rem; font-weight: 700; font-family: monospace; letter-spacing: 2px;">
-          <button class="btn btn-primary btn-sm" onclick="copyRoomCode()">Copy</button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Created Date</label>
-        <input type="text" value="${new Date(currentRoom.created_at).toLocaleDateString()}" disabled>
-      </div>
-      <button class="btn btn-warning btn-block mt-2" onclick="openRotateModal()">🔄 Rotate Code</button>
-    `);
-  }
-
-  async function loadCodeHistory() {
-    try {
-      if (!currentRoom) return;
-
-      const { data: history } = await supabase
-        .from('rooms_history')
-        .select('old_code, new_code, rotated_by, rotated_at')
-        .eq('room_id', currentRoom.id)
-        .order('rotated_at', { ascending: false });
-
-      const tbody = DOM.id('codeHistoryBody');
-      
-      if (!history || history.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center">No code rotations yet</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = history.map(h => `
-        <tr>
-          <td><code>${h.old_code}</code></td>
-          <td><code style="color: var(--primary-color);">${h.new_code}</code></td>
-          <td>${h.rotated_by}</td>
-          <td>${new Date(h.rotated_at).toLocaleString()}</td>
-        </tr>
-      `).join('');
-
-    } catch (error) {
-      console.error('Load history error:', error);
-    }
-  }
-
-  async function handleCreateRoom(e) {
-    e.preventDefault();
-
-    const name = DOM.id('roomName')?.value.trim();
-    if (!name) {
-      Toast.error('Room name is required');
-      return;
     }
 
-    try {
-      // Generate code
-      const { data: code, error: codeError } = await supabase.rpc('generate_room_code');
-      if (codeError) throw codeError;
+    async function loadRoomInfo() {
+        try {
+            const { data: room } = await supabase
+                .from('rooms')
+                .select('*')
+                .eq('id', currentProfile.room_id)
+                .single();
 
-      // Create room and get its data back
-      const { data: newRoom, error: createError } = await supabase
-        .from('rooms')
-        .insert([{
-          name,
-          current_code: code,
-          created_by: currentProfile.id
-        }])
-        .select()
-        .single(); // Use .single() to get the new room object
+            if (!room) return;
 
-      if (createError) throw createError;
-      if (!newRoom) throw new Error('Failed to get new room details.');
+            currentRoom = room;
 
-      // **THIS IS THE FIX:** Update the admin's profile with the new room ID
-      const { error: updateAdminError } = await supabase
-        .from('users_info')
-        .update({ room_id: newRoom.id })
-        .eq('id', currentProfile.id);
+            const html = \
+                <div style="margin-bottom: 1rem;">
+                    <label>Organization Name</label>
+                    <input type="text" value="\" disabled class="input">
+                </div>
 
-      if (updateAdminError) throw updateAdminError;
+                <div style="margin-bottom: 1rem;">
+                    <label>Current Room Code</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" value="\" disabled class="input" style="flex: 1; font-weight: 700; font-family: monospace; font-size: 1.2rem;">
+                        <button class="btn" onclick="copyCode('\')" style="padding: 12px 16px;">Copy</button>
+                    </div>
+                </div>
 
-      Toast.success('Room created successfully!');
-      DOM.id('createRoomForm').reset();
-      
-      // Reload all data to reflect the changes
-      await init(); 
+                <div style="margin-bottom: 1rem;">
+                    <label>Created Date</label>
+                    <input type="text" value="\" disabled class="input">
+                </div>
 
-    } catch (error) {
-      console.error('Create room error:', error);
-      Toast.error(error.message || 'Failed to create room');
+                <button class="btn secondary" onclick="rotateCode()" style="width: 100%;">?? Rotate Code</button>
+            \;
+
+            Utils.dom.setHTML(Utils.dom.id('currentOrgContainer'), html);
+
+        } catch (error) {
+            console.error('Load room error:', error);
+        }
     }
-  }
 
-  window.copyRoomCode = async () => {
-    if (currentRoom) {
-      await copyToClipboard(currentRoom.current_code);
+    async function loadCodeHistory() {
+        try {
+            const { data: history } = await supabase
+                .from('rooms_history')
+                .select('*')
+                .eq('room_id', currentProfile.room_id)
+                .order('rotated_at', { ascending: false });
+
+            const tbody = Utils.dom.id('historyTableBody');
+
+            if (!history || history.length === 0) {
+                Utils.dom.setHTML(tbody, '<tr><td colspan="3" style="text-align: center;">No rotation history</td></tr>');
+                return;
+            }
+
+            const html = history.map(h => \
+                <tr>
+                    <td><code>\</code></td>
+                    <td><code style="color: var(--brand);">\</code></td>
+                    <td>\</td>
+                </tr>
+            \).join('');
+
+            Utils.dom.setHTML(tbody, html);
+
+        } catch (error) {
+            console.error('Load history error:', error);
+        }
     }
-  };
 
-  window.openRotateModal = async () => {
-    if (!currentRoom) return;
+    window.copyCode = async (code) => {
+        try {
+            await navigator.clipboard.writeText(code);
+            alert('Code copied to clipboard!');
+        } catch (error) {
+            alert('Failed to copy code');
+        }
+    };
 
-    try {
-      // Generate new code
-      const { data: newCode, error } = await supabase.rpc('generate_room_code');
-      if (error) throw error;
+    window.rotateCode = async () => {
+        if (!confirm('Rotate room code? Current members will keep access.')) return;
 
-      DOM.setText(DOM.id('currentCodeDisplay'), currentRoom.current_code);
-      DOM.setText(DOM.id('newCodeDisplay'), newCode);
-      DOM.removeClass(DOM.id('rotateCodeModal'), 'hidden');
+        try {
+            // Generate new code
+            const { data: newCode, error: codeError } = await supabase.rpc('generate_room_code');
+            if (codeError) throw codeError;
 
-      // Store new code for confirmation
-      window.pendingNewCode = newCode;
+            // Record history
+            const { error: histError } = await supabase
+                .from('rooms_history')
+                .insert([{
+                    room_id: currentProfile.room_id,
+                    old_code: currentRoom.current_code,
+                    new_code: newCode,
+                    rotated_by: currentProfile.id,
+                    rotated_at: new Date().toISOString()
+                }]);
 
-    } catch (error) {
-      console.error('Generate code error:', error);
-      Toast.error('Failed to generate new code');
-    }
-  };
+            if (histError) throw histError;
 
-  window.closeRotateModal = () => {
-    DOM.addClass(DOM.id('rotateCodeModal'), 'hidden');
-    window.pendingNewCode = null;
-  };
+            // Update room code
+            const { error: updateError } = await supabase
+                .from('rooms')
+                .update({ current_code: newCode })
+                .eq('id', currentProfile.room_id);
 
-  window.confirmRotateCode = async () => {
-    if (!currentRoom || !window.pendingNewCode) return;
+            if (updateError) throw updateError;
 
-    try {
-      // Record old code in history
-      const { error: historyError } = await supabase
-        .from('rooms_history')
-        .insert([{
-          room_id: currentRoom.id,
-          old_code: currentRoom.current_code,
-          new_code: window.pendingNewCode,
-          rotated_by: currentProfile.id,
-          rotated_at: new Date().toISOString()
-        }]);
+            alert('Room code rotated successfully!');
+            await loadRoomInfo();
+            await loadCodeHistory();
 
-      if (historyError) throw historyError;
+        } catch (error) {
+            console.error('Rotate error:', error);
+            alert('Failed to rotate code');
+        }
+    };
 
-      // Update room with new code
-      const { error: updateError } = await supabase
-        .from('rooms')
-        .update({ current_code: window.pendingNewCode })
-        .eq('id', currentRoom.id);
-
-      if (updateError) throw updateError;
-
-      Toast.success('Room code rotated successfully!');
-      window.closeRotateModal();
-      await init();
-
-    } catch (error) {
-      console.error('Rotate code error:', error);
-      Toast.error(error.message || 'Failed to rotate code');
-    }
-  };
-
-  document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init);
 
 })();
 

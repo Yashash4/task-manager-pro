@@ -3,73 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dashboard - Task Manager Pro</title>
-    <link rel="stylesheet" href="../assets/css/main.css">
+    <title>User Dashboard - Task Manager</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <span class="logo-dot"></span> Task Manager Pro
+    <header class="topbar">
+        <div class="brand"><span class="dot"></span> Task Manager</div>
+        <nav class="nav">
+            <a href="dashboard.html" class="active">Dashboard</a>
+            <a href="tasks.html">My Tasks</a>
+            <a href="#" id="logoutBtn" data-logout>Logout</a>
+        </nav>
+    </header>
+
+    <main class="wrap">
+        <h1 class="h1">Welcome, <span id="userName">User</span>!</h1>
+
+        <div class="grid cols-2">
+            <div class="card">
+                <h2>My Statistics</h2>
+                <div id="userStatsContainer">Loading...</div>
             </div>
-            <div class="nav-links">
-                <span class="text-secondary" id="userName">User</span>
-                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+
+            <div class="card">
+                <h2>Task Status Overview</h2>
+                <div id="taskStatusContainer">Loading...</div>
             </div>
         </div>
-    </nav>
 
-    <div class="wrapper">
-        <aside class="sidebar">
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html" class="active">📊 Dashboard</a></li>
-                <li><a href="tasks.html">✅ My Tasks</a></li>
-                <li><a href="notifications.html">🔔 Notifications</a></li>
-                <li><a href="profile.html">👤 Profile</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <div class="card">
-                <div class="card-header">
-                    <h1 class="card-title">Welcome, <span id="welcomeName">User</span>!</h1>
-                </div>
-                <div class="card-body">
-                    <div class="grid grid-4" id="userStatsGrid">
-                        </div>
-                </div>
-            </div>
-
-            <div class="grid grid-2 mt-3">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">My Tasks Overview</h2>
-                    </div>
-                    <div id="tasksOverview">Loading...</div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Upcoming Deadlines</h2>
-                    </div>
-                    <div id="upcomingDeadlines">Loading...</div>
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h2 class="card-title">Recent Activity</h2>
-                </div>
-                <div id="recentActivity">Loading...</div>
-            </div>
-        </main>
-    </div>
+        <div class="card" style="margin-top: 2rem;">
+            <h2>Upcoming Deadlines</h2>
+            <div id="upcomingDeadlinesContainer">Loading...</div>
+        </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="../assets/js/core/supabaseClient.js"></script>
-    <script src="../assets/js/core/utils.js"></script>
-    <script src="../assets/js/core/validation.js"></script>
-    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/lib/supabaseClient.js"></script>
+    <script src="../assets/js/utility.js"></script>
+    <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/user/dashboard.js"></script>
 </body>
 </html>

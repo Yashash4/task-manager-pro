@@ -1,141 +1,184 @@
-// ==========================================
-// USER DASHBOARD
-// ==========================================
-
+// user/dashboard.js - User dashboard with stats
 (async function () {
-  const supabase = window.SUPABASE?.client?.();
-  if (!supabase) return;
+    const supabase = window.SUPABASE?.client?.();
+    if (!supabase) return;
 
-  async function loadDashboard() {
-    try {
-      const user = await API.getCurrentUser();
-      if (!user) {
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    let currentProfile = null;
 
-      const profile = await API.getUserProfile(user.id);
-      if (!profile) {
-        await supabase.auth.signOut();
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    async function init() {
+        try {
+            const auth = await Utils.api.checkAuth();
+            if (!auth) return;
 
-      DOM.setText(DOM.id('userName'), profile.username);
-      DOM.setText(DOM.id('welcomeName'), profile.username);
+            currentProfile = auth.profile;
 
-      // Load all data widgets
-      await Promise.all([
-        loadStats(profile),
-        loadUpcomingDeadlines(profile),
-        loadRecentActivity(profile)
-      ]);
-      
-      // Fallback for any sections that might still be showing loading
-      if (DOM.id('tasksOverview').innerHTML === 'Loading...') DOM.setHTML(DOM.id('tasksOverview'), '<p class="text-muted">No task overview available.</p>');
-      if (DOM.id('recentActivity').innerHTML === 'Loading...') DOM.setHTML(DOM.id('recentActivity'), '<p class="text-muted">No recent activity.</p>');
+            if (!currentProfile.approved) {
+                await supabase.auth.signOut();
+                window.location.href = '/login.html';
+                return;
+            }
 
+            Utils.dom.setText(Utils.dom.id('userName'), currentProfile.username);
+            await loadStats();
+            await loadTaskStatus();
+            await loadUpcomingDeadlines();
 
-    } catch (error) {
-      console.error('Dashboard error:', error);
-      Toast.error('Failed to load dashboard');
-      // Ensure all loading text is cleared on a major error
-      DOM.setHTML(DOM.id('userStatsGrid'), '<p class="text-muted">Could not load stats.</p>');
-      DOM.setHTML(DOM.id('tasksOverview'), '<p class="text-muted">Could not load tasks.</p>');
-      DOM.setHTML(DOM.id('upcomingDeadlines'), '<p class="text-muted">Could not load deadlines.</p>');
-      DOM.setHTML(DOM.id('recentActivity'), '<p class="text-muted">Could not load activity.</p>');
+        } catch (error) {
+            console.error('Init error:', error);
+        }
     }
-  }
 
-  async function loadStats(profile) {
-    const statsGrid = DOM.id('userStatsGrid');
-    const tasksOverview = DOM.id('tasksOverview');
-    try {
-      const { data: tasks, error } = await supabase
-        .from('tasks')
-        .select('status')
-        .eq('assigned_to', profile.id);
+    async function loadStats() {
+        try {
+            const { count: totalTasks } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact' })
+                .eq('assigned_to', currentProfile.id);
 
-      if (error) throw error;
-      
-      const totalTasks = tasks.length;
-      const completedTasks = tasks.filter(t => t.status === 'approved').length;
-      const inProgressTasks = tasks.filter(t => t.status === 'in_progress').length;
-      const pendingTasks = tasks.filter(t => ['assigned', 'submitted', 'rejected'].includes(t.status)).length;
+            const { count: completedTasks } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact' })
+                .eq('assigned_to', currentProfile.id)
+                .eq('status', 'approved');
 
-      const stats = [
-        { label: 'Total Tasks', value: totalTasks, icon: '📋' },
-        { label: 'Completed', value: completedTasks, icon: '✅' },
-        { label: 'In Progress', value: inProgressTasks, icon: '🔄' },
-        { label: 'Pending', value: pendingTasks, icon: '⏳' }
-      ];
+            const { count: inProgress } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact' })
+                .eq('assigned_to', currentProfile.id)
+                .eq('status', 'in_progress');
 
-      statsGrid.innerHTML = stats.map(stat => `
-        <div class="card">
-          <div style="text-align: center; padding: 1rem;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">${stat.icon}</div>
-            <div class="text-muted">${stat.label}</div>
-            <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">${stat.value}</div>
-          </div>
-        </div>
-      `).join('');
+            const { data: overdueTasks } = await supabase
+                .from('tasks')
+                .select('due_date')
+                .eq('assigned_to', currentProfile.id)
+                .neq('status', 'approved')
+                .neq('status', 'rejected');
 
-      // Also update the tasks overview chart
-      tasksOverview.innerHTML = `
-        <ul style="list-style: none; padding: 0 1rem 1rem 1rem;">
-          <li style="padding: 0.5rem 0; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color);"><span>Completed</span> <strong>${completedTasks}</strong></li>
-          <li style="padding: 0.5rem 0; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color);"><span>In Progress</span> <strong>${inProgressTasks}</strong></li>
-          <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;"><span>Pending</span> <strong>${pendingTasks}</strong></li>
-        </ul>`;
+            const overdueCount = overdueTasks?.filter(t => Utils.time.isOverdue(t.due_date)).length || 0;
 
-    } catch (error) {
-      console.error('Load stats error:', error);
-      statsGrid.innerHTML = '<p class="text-muted" style="padding: 1rem;">Could not load your stats.</p>';
-      tasksOverview.innerHTML = '<p class="text-muted" style="padding: 1rem;">Could not load task overview.</p>';
+            const html = \
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--brand);">\</div>
+                        <div class="text-mut">Total Tasks</div>
+                    </div>
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--ok);">\</div>
+                        <div class="text-mut">Completed</div>
+                    </div>
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--warn);">\</div>
+                        <div class="text-mut">In Progress</div>
+                    </div>
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--bad);">\</div>
+                        <div class="text-mut">Overdue</div>
+                    </div>
+                </div>
+            \;
+
+            Utils.dom.setHTML(Utils.dom.id('userStatsContainer'), html);
+
+        } catch (error) {
+            console.error('Load stats error:', error);
+        }
     }
-  }
 
-  async function loadUpcomingDeadlines(profile) {
-    const deadlinesContainer = DOM.id('upcomingDeadlines');
-    try {
-      const today = new Date().toISOString();
-      const { data: tasks, error } = await supabase
-        .from('tasks')
-        .select('title, due_date')
-        .eq('assigned_to', profile.id)
-        .in('status', ['assigned', 'in_progress', 'submitted', 'rejected'])
-        .gte('due_date', today)
-        .order('due_date', { ascending: true })
-        .limit(5);
+    async function loadTaskStatus() {
+        try {
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select('status')
+                .eq('assigned_to', currentProfile.id);
 
-      if (error) throw error;
+            const statuses = {
+                'assigned': 0,
+                'in_progress': 0,
+                'submitted': 0,
+                'approved': 0,
+                'rejected': 0
+            };
 
-      if (!tasks || tasks.length === 0) {
-        deadlinesContainer.innerHTML = '<p class="text-muted" style="padding: 1rem;">No upcoming deadlines. Great job!</p>';
-        return;
-      }
+            tasks?.forEach(t => {
+                statuses[t.status]++;
+            });
 
-      deadlinesContainer.innerHTML = `
-        <ul style="list-style: none; padding: 0 1rem 1rem 1rem;">
-          ${tasks.map(task => `
-            <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-              <span>${task.title}</span>
-              <strong style="color: var(--primary-color);">${new Date(task.due_date).toLocaleDateString()}</strong>
-            </li>
-          `).join('')}
-        </ul>`;
+            const html = \
+                <ul style="list-style: none;">
+                    <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                        <span>?? Assigned</span>
+                        <strong>\</strong>
+                    </li>
+                    <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                        <span>? In Progress</span>
+                        <strong>\</strong>
+                    </li>
+                    <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                        <span>?? Submitted</span>
+                        <strong>\</strong>
+                    </li>
+                    <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                        <span>? Approved</span>
+                        <strong>\</strong>
+                    </li>
+                    <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                        <span>? Rejected</span>
+                        <strong>\</strong>
+                    </li>
+                </ul>
+            \;
 
-    } catch (error) {
-      console.error('Load deadlines error:', error);
-      deadlinesContainer.innerHTML = '<p class="text-muted" style="padding: 1rem;">Could not load deadlines.</p>';
+            Utils.dom.setHTML(Utils.dom.id('taskStatusContainer'), html);
+
+        } catch (error) {
+            console.error('Load status error:', error);
+        }
     }
-  }
-  
-  async function loadRecentActivity(profile) {
-      const activityContainer = DOM.id('recentActivity');
-      // This is a placeholder as activity logging is not fully implemented yet
-      activityContainer.innerHTML = '<p class="text-muted" style="padding: 1rem;">No recent activity to show.</p>';
-  }
 
-  document.addEventListener('DOMContentLoaded', loadDashboard);
+    async function loadUpcomingDeadlines() {
+        try {
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('assigned_to', currentProfile.id)
+                .neq('status', 'approved')
+                .neq('status', 'rejected')
+                .order('due_date', { ascending: true })
+                .limit(5);
+
+            if (!tasks || tasks.length === 0) {
+                Utils.dom.setHTML(Utils.dom.id('upcomingDeadlinesContainer'), 
+                    '<p class="text-mut">No upcoming deadlines</p>');
+                return;
+            }
+
+            const html = tasks.map(task => {
+                const daysLeft = Utils.time.daysUntil(task.due_date);
+                const isOverdue = daysLeft < 0;
+                const color = isOverdue ? 'var(--bad)' : daysLeft <= 3 ? 'var(--warn)' : 'var(--ok)';
+
+                return \
+                    <div style="padding: 1rem; background: var(--elev); border-radius: 8px; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-weight: 600;">\</div>
+                            <div class="text-mut" style="font-size: 0.85rem;">\</div>
+                        </div>
+                        <span style="color: \; font-weight: 600;">
+                            \
+                        </span>
+                    </div>
+                \;
+            }).join('');
+
+            Utils.dom.setHTML(Utils.dom.id('upcomingDeadlinesContainer'), html);
+
+        } catch (error) {
+            console.error('Load deadlines error:', error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
 })();
+
+console.log('? User dashboard loaded');

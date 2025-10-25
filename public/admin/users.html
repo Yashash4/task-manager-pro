@@ -3,112 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Users Management - Task Manager Pro</title>
-    <link rel="stylesheet" href="../assets/css/main.css">
+    <title>Manage Users - Task Manager</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <span class="logo-dot"></span> Task Manager Pro
-            </div>
-            <div class="nav-links">
-                <span class="text-secondary" id="orgName">Organization</span>
-                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
-            </div>
-        </div>
-    </nav>
+    <header class="topbar">
+        <div class="brand"><span class="dot"></span> Task Manager</div>
+        <nav class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="users.html" class="active">Users</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="rooms.html">Rooms</a>
+            <a href="reports.html">Reports</a>
+            <a href="#" id="logoutBtn" data-logout>Logout</a>
+        </nav>
+    </header>
 
-    <div class="wrapper">
-        <aside class="sidebar">
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html">📊 Dashboard</a></li>
-                <li><a href="tasks.html">✅ Tasks</a></li>
-                <li><a href="users.html" class="active">👥 Users</a></li>
-                <li><a href="rooms.html">🏢 Rooms</a></li>
-                <li><a href="reports.html">📈 Reports</a></li>
-                <li><a href="settings.html">⚙️ Settings</a></li>
-            </ul>
-        </aside>
+    <main class="wrap">
+        <h1 class="h1">Manage Users</h1>
 
-        <main class="main-content">
-            <div class="card">
-                <div class="card-header flex-between">
-                    <h1 class="card-title">Users Management</h1>
-                    <div class="flex">
-                        <select id="userStatusFilter" style="min-width: 150px; margin-right: 10px;">
-                            <option value="">All Status</option>
-                            <option value="pending">Pending Approval</option>
-                            <option value="approved">Approved</option>
-                            <option value="suspended">Suspended</option>
-                        </select>
-                        <input type="text" placeholder="Search users..." id="userSearch" style="flex: 1;">
-                    </div>
-                </div>
-                <div class="card-body">
-                    <table class="table" id="usersTable">
-                        <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Joined Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersBody">
-                            <tr><td colspan="6" class="text-center">Loading users...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+        <div class="card">
+            <div style="margin-bottom: 1rem;">
+                <input type="text" id="userSearch" placeholder="?? Search users..." class="input">
             </div>
-        </main>
-    </div>
 
-    <div class="modal-overlay hidden" id="userModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>User Details</h2>
-                <button onclick="closeUserModal()" class="btn btn-secondary btn-sm">X</button>
-            </div>
-            <div class="modal-body">
-                <div id="userModalContent">Loading...</div>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeUserModal()" class="btn btn-secondary">Close</button>
-            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr><td colspan="6" style="text-align: center; padding: 2rem;">Loading users...</td></tr>
+                </tbody>
+            </table>
         </div>
-    </div>
-    
-    <div class="modal-overlay hidden" id="changeRoleModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Change User Role</h2>
-                <button onclick="closeChangeRoleModal()" class="btn btn-secondary btn-sm">X</button>
-            </div>
-            <div class="modal-body">
-                <p class="text-secondary mb-2">Select the new role for <strong id="changeRoleUsername"></strong>.</p>
-                <div class="form-group">
-                    <label>New Role</label>
-                    <select id="newRoleSelect">
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeChangeRoleModal()" class="btn btn-secondary">Cancel</button>
-                <button onclick="confirmRoleChange()" class="btn btn-primary">Save Changes</button>
-            </div>
-        </div>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="../assets/js/core/supabaseClient.js"></script>
-    <script src="../assets/js/core/utils.js"></script>
-    <script src="../assets/js/core/validation.js"></script>
-    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/lib/supabaseClient.js"></script>
+    <script src="../assets/js/utility.js"></script>
+    <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/admin/users.js"></script>
 </body>
 </html>

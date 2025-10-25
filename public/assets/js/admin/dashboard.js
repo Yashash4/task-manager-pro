@@ -1,186 +1,131 @@
-// ==========================================
-// ADMIN DASHBOARD
-// ==========================================
-
+// admin/dashboard.js - Updated with better data loading
 (async function () {
-  const supabase = window.SUPABASE?.client?.();
-  if (!supabase) return;
+    const supabase = window.SUPABASE?.client?.();
+    if (!supabase) return;
 
-  // Get current user and profile
-  async function loadDashboard() {
-    try {
-      const user = await API.getCurrentUser();
-      if (!user) {
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    let currentProfile = null;
 
-      const profile = await API.getUserProfile(user.id);
-      if (!profile || !profile.role_flags?.includes('admin')) {
-        await supabase.auth.signOut();
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    async function init() {
+        try {
+            const auth = await Utils.api.checkAuth();
+            if (!auth) return;
 
-      // Set org name
-      if (profile.room_id) {
-        const { data: room } = await supabase
-          .from('rooms')
-          .select('name')
-          .eq('id', profile.room_id)
-          .single();
-        
-        if (room) DOM.setText(DOM.id('orgName'), room.name);
-      }
+            currentProfile = auth.profile;
 
-      // Load stats
-      await loadStats(profile);
-      await loadRecentTasks(profile);
-      await loadTeamMembers(profile);
+            // Check if admin
+            if (!currentProfile.role_flags?.includes('admin')) {
+                await supabase.auth.signOut();
+                window.location.href = '/login.html';
+                return;
+            }
 
-    } catch (error) {
-      console.error('Dashboard error:', error);
-      Toast.error('Failed to load dashboard');
+            await loadStats();
+            await loadRecentTasks();
+
+        } catch (error) {
+            console.error('Init error:', error);
+        }
     }
-  }
 
-  async function loadStats(profile) {
-    try {
-      if (!profile.room_id) return;
+    async function loadStats() {
+        try {
+            if (!currentProfile.room_id) return;
 
-      // Total Tasks
-      const { count: totalTasks } = await supabase
-        .from('tasks')
-        .select('*', { count: 'exact' })
-        .eq('room_id', profile.room_id);
+            const { count: totalTasks } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact' })
+                .eq('room_id', currentProfile.room_id);
 
-      // Approved Tasks
-      const { count: approvedTasks } = await supabase
-        .from('tasks')
-        .select('*', { count: 'exact' })
-        .eq('room_id', profile.room_id)
-        .eq('status', 'approved');
+            const { count: approvedTasks } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact' })
+                .eq('room_id', currentProfile.room_id)
+                .eq('status', 'approved');
 
-      // Total Users
-      const { count: totalUsers } = await supabase
-        .from('users_info')
-        .select('*', { count: 'exact' })
-        .eq('room_id', profile.room_id)
-        .eq('approved', true);
+            const { count: totalUsers } = await supabase
+                .from('users_info')
+                .select('*', { count: 'exact' })
+                .eq('room_id', currentProfile.room_id)
+                .eq('approved', true);
 
-      // Pending Approvals
-      const { count: pendingApprovals } = await supabase
-        .from('tasks')
-        .select('*', { count: 'exact' })
-        .eq('room_id', profile.room_id)
-        .eq('status', 'submitted');
+            const { count: pendingUsers } = await supabase
+                .from('users_info')
+                .select('*', { count: 'exact' })
+                .eq('room_id', currentProfile.room_id)
+                .eq('approved', false);
 
-      const stats = [
-        { label: 'Total Tasks', value: totalTasks || 0, icon: '📋' },
-        { label: 'Completed', value: approvedTasks || 0, icon: '✅' },
-        { label: 'Team Members', value: totalUsers || 0, icon: '👥' },
-        { label: 'Pending Approval', value: pendingApprovals || 0, icon: '⏳' }
-      ];
+            const html = \
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--brand);">\</div>
+                        <div class="text-mut">Total Tasks</div>
+                    </div>
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--ok);">\</div>
+                        <div class="text-mut">Completed</div>
+                    </div>
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--brand);">\</div>
+                        <div class="text-mut">Team Members</div>
+                    </div>
+                    <div style="background: var(--elev); padding: 1rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--warn);">\</div>
+                        <div class="text-mut">Pending Approval</div>
+                    </div>
+                </div>
+            \;
 
-      const statsGrid = DOM.id('statsGrid');
-      statsGrid.innerHTML = stats.map(stat => `
-        <div class="card">
-          <div style="text-align: center; padding: 1rem;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">${stat.icon}</div>
-            <div class="text-muted">${stat.label}</div>
-            <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">${stat.value}</div>
-          </div>
-        </div>
-      `).join('');
+            const container = Utils.dom.id('statsContainer');
+            Utils.dom.setHTML(container, html);
 
-    } catch (error) {
-      console.error('Load stats error:', error);
+        } catch (error) {
+            console.error('Load stats error:', error);
+        }
     }
-  }
 
-  async function loadRecentTasks(profile) {
-    try {
-      if (!profile.room_id) return;
+    async function loadRecentTasks() {
+        try {
+            if (!currentProfile.room_id) return;
 
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select(`
-          id, title, status, priority, due_date,
-          assigned_user:users_info!tasks_assigned_to_fkey(username)
-        `)
-        .eq('room_id', profile.room_id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select(\id, title, status, priority, due_date, assigned_user:users_info!tasks_assigned_to_fkey(username)\)
+                .eq('room_id', currentProfile.room_id)
+                .order('created_at', { ascending: false })
+                .limit(10);
 
-      const container = DOM.id('recentTasks');
-      if (!tasks || tasks.length === 0) {
-        DOM.setHTML(container, '<p class="text-muted">No tasks yet</p>');
-        return;
-      }
+            if (!tasks || tasks.length === 0) {
+                Utils.dom.setHTML(Utils.dom.id('recentTasksContainer'), '<p class="text-mut">No tasks yet</p>');
+                return;
+            }
 
-      const priorityColors = {
-        'low': '#22c55e',
-        'medium': '#f59e0b',
-        'high': '#ef4444',
-        'urgent': '#dc2626'
-      };
+            const statusEmoji = {
+                'assigned': '??',
+                'in_progress': '?',
+                'submitted': '??',
+                'approved': '?',
+                'rejected': '?'
+            };
 
-      DOM.setHTML(container, `
-        <ul style="list-style: none;">
-          ${tasks.map(task => `
-            <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-weight: 600;">${task.title}</div>
-                <div class="text-muted" style="font-size: 0.85rem;">${task.assigned_user?.username || 'Unassigned'}</div>
-              </div>
-              <span class="badge badge-primary">${task.status}</span>
-            </li>
-          `).join('')}
-        </ul>
-      `);
+            const html = tasks.map(t => \
+                <div style="padding: 1rem; background: var(--elev); border-radius: 8px; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600;">\</div>
+                        <div class="text-mut" style="font-size: 0.85rem;">\</div>
+                    </div>
+                    <span class="pill status-\">\ \</span>
+                </div>
+            \).join('');
 
-    } catch (error) {
-      console.error('Load recent tasks error:', error);
+            Utils.dom.setHTML(Utils.dom.id('recentTasksContainer'), html);
+
+        } catch (error) {
+            console.error('Load tasks error:', error);
+        }
     }
-  }
 
-  async function loadTeamMembers(profile) {
-    try {
-      if (!profile.room_id) return;
-
-      const { data: users } = await supabase
-        .from('users_info')
-        .select('id, username, email, joined_at')
-        .eq('room_id', profile.room_id)
-        .eq('approved', true)
-        .order('joined_at', { ascending: false })
-        .limit(5);
-
-      const container = DOM.id('teamMembers');
-      if (!users || users.length === 0) {
-        DOM.setHTML(container, '<p class="text-muted">No team members yet</p>');
-        return;
-      }
-
-      DOM.setHTML(container, `
-        <ul style="list-style: none;">
-          ${users.map(user => `
-            <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-weight: 600;">${user.username}</div>
-                <div class="text-muted" style="font-size: 0.85rem;">${user.email}</div>
-              </div>
-            </li>
-          `).join('')}
-        </ul>
-      `);
-
-    } catch (error) {
-      console.error('Load team members error:', error);
-    }
-  }
-
-  // Load on page load
-  document.addEventListener('DOMContentLoaded', loadDashboard);
+    document.addEventListener('DOMContentLoaded', init);
 
 })();
+
+console.log('? Admin dashboard loaded');

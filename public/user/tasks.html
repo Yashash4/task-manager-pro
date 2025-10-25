@@ -3,127 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Tasks - Task Manager Pro</title>
-    <link rel="stylesheet" href="../assets/css/main.css">
+    <title>My Tasks - Task Manager</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="logo">
-                <span class="logo-dot"></span> Task Manager Pro
+    <header class="topbar">
+        <div class="brand"><span class="dot"></span> Task Manager</div>
+        <nav class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="tasks.html" class="active">My Tasks</a>
+            <a href="#" id="logoutBtn" data-logout>Logout</a>
+        </nav>
+    </header>
+
+    <main class="wrap">
+        <h1 class="h1">My Assigned Tasks</h1>
+
+        <div class="card">
+            <div style="margin-bottom: 1rem;">
+                <input type="text" id="taskSearch" placeholder="?? Search tasks..." class="input">
             </div>
-            <div class="nav-links">
-                <span class="text-secondary" id="userName">User</span>
-                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+
+            <div id="tasksContainer" style="display: grid; gap: 1rem;">
+                <p class="text-mut" style="text-align: center;">Loading tasks...</p>
             </div>
         </div>
-    </nav>
+    </main>
 
-    <div class="wrapper">
-        <aside class="sidebar">
-            <ul class="sidebar-menu">
-                <li><a href="dashboard.html">📊 Dashboard</a></li>
-                <li><a href="tasks.html" class="active">✅ My Tasks</a></li>
-                <li><a href="notifications.html">🔔 Notifications</a></li>
-                <li><a href="profile.html">👤 Profile</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <div class="card">
-                <div class="card-header flex-between">
-                    <h1 class="card-title">My Tasks</h1>
-                    <select id="taskViewMode" onchange="changeViewMode()">
-                        <option value="list">📄 List View</option>
-                        <option value="kanban">📋 Kanban Board</option>
-                    </select>
-                </div>
-                <div class="card-body">
-                    <div class="flex mb-2">
-                        <input type="text" placeholder="Search tasks..." id="taskSearch" class="flex-1" style="margin-right: 10px;">
-                        <select id="taskFilter" onchange="filterMyTasks()">
-                            <option value="">All Tasks</option>
-                            <option value="assigned">Assigned</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="submitted">Submitted</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                    </div>
-
-                    <div id="listView">
-                        <table class="table" id="tasksTable">
-                            <thead>
-                                <tr>
-                                    <th>Task</th>
-                                    <th>Status</th>
-                                    <th>Priority</th>
-                                    <th>Due Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tasksBody">
-                                <tr><td colspan="5" class="text-center">Loading tasks...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div id="kanbanView" class="hidden" style="display: flex; gap: 1rem; overflow-x: auto; padding: 1rem 0;">
-                        <div class="kanban-column" data-status="assigned">
-                            <div class="kanban-header">📥 Assigned</div>
-                            <div class="kanban-tasks" id="kanban-assigned"></div>
-                        </div>
-                        <div class="kanban-column" data-status="in_progress">
-                            <div class="kanban-header">🔄 In Progress</div>
-                            <div class="kanban-tasks" id="kanban-in_progress"></div>
-                        </div>
-                        <div class="kanban-column" data-status="submitted">
-                            <div class="kanban-header">📤 Submitted</div>
-                            <div class="kanban-tasks" id="kanban-submitted"></div>
-                        </div>
-                        <div class="kanban-column" data-status="approved">
-                            <div class="kanban-header">✅ Approved</div>
-                            <div class="kanban-tasks" id="kanban-approved"></div>
-                        </div>
-                        <div class="kanban-column" data-status="rejected">
-                            <div class="kanban-header">❌ Rejected</div>
-                            <div class="kanban-tasks" id="kanban-rejected"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <div class="modal-overlay hidden" id="taskModal">
+    <!-- Task Detail Modal -->
+    <div id="taskModal" class="modal-overlay" style="display: none;">
         <div class="modal">
-            <div class="modal-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--stroke);">
                 <h2 id="taskModalTitle">Task Details</h2>
-                <button onclick="closeTaskModal()" class="btn btn-secondary btn-sm">X</button>
+                <button class="btn secondary" onclick="closeTaskModal()" style="padding: 6px 12px;">?</button>
             </div>
-            <div class="modal-body" id="taskModalContent">
-                Loading...
-            </div>
-            <div class="modal-footer">
-                <button onclick="closeTaskModal()" class="btn btn-secondary">Close</button>
-            </div>
+            <div id="taskModalContent">Loading...</div>
         </div>
     </div>
 
     <style>
-        .kanban-column { flex: 0 0 300px; background-color: var(--bg-light); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); }
-        .kanban-header { font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); }
-        .kanban-card { background-color: var(--bg-darker); border: 1px solid var(--border-color); padding: 1rem; margin-bottom: 0.75rem; border-radius: var(--radius-md); cursor: pointer; transition: var(--transition); }
-        .kanban-card:hover { border-color: var(--primary-color); box-shadow: 0 0 10px rgba(34, 211, 238, 0.1); }
-        .kanban-card-title { font-weight: 600; margin-bottom: 0.5rem; }
-        .kanban-card-priority { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 0.5rem; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); display: flex;
+            align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal {
+            background: var(--panel); border: 1px solid var(--stroke);
+            border-radius: 12px; padding: 2rem; width: 90%; max-width: 500px;
+            max-height: 90vh; overflow-y: auto;
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="../assets/js/core/supabaseClient.js"></script>
-    <script src="../assets/js/core/utils.js"></script>
-    <script src="../assets/js/core/validation.js"></script>
-    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/lib/supabaseClient.js"></script>
+    <script src="../assets/js/utility.js"></script>
+    <script src="../assets/js/auth.js"></script>
     <script src="../assets/js/user/tasks.js"></script>
 </body>
 </html>

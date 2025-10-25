@@ -1,258 +1,207 @@
-// ==========================================
-// USER TASKS MANAGEMENT
-// ==========================================
-
-let currentProfile = null;
-let allUserTasks = [];
-
+// user/tasks.js - Complete user task management
 (async function () {
-  const supabase = window.SUPABASE?.client?.();
-  if (!supabase) return;
+    const supabase = window.SUPABASE?.client?.();
+    if (!supabase) return;
 
-  async function init() {
-    try {
-      const user = await API.getCurrentUser();
-      if (!user) {
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    let currentProfile = null;
+    let allTasks = [];
 
-      currentProfile = await API.getUserProfile(user.id);
-      if (!currentProfile) {
-        await supabase.auth.signOut();
-        window.location.href = '/auth/login.html';
-        return;
-      }
+    async function init() {
+        try {
+            const auth = await Utils.api.checkAuth();
+            if (!auth) return;
 
-      if (!currentProfile.approved) {
-        // Redirect if the user's account is not yet approved
-        alert('Your account is awaiting admin approval. You will be logged out.');
-        await supabase.auth.signOut();
-        window.location.href = '/auth/login.html';
-        return;
-      }
+            currentProfile = auth.profile;
 
-      DOM.setText(DOM.id('userName'), currentProfile.username);
-      await loadTasks();
+            if (!currentProfile.approved) {
+                await supabase.auth.signOut();
+                window.location.href = '/login.html';
+                return;
+            }
 
-      // Event listeners
-      DOM.on(DOM.id('taskSearch'), 'input', debounce(filterMyTasks, 300));
-      DOM.on(DOM.id('taskFilter'), 'change', filterMyTasks);
+            await loadTasks();
 
-    } catch (error) {
-      console.error('Init error:', error);
-      Toast.error('Failed to initialize the tasks page.');
-    }
-  }
+            Utils.dom.on(Utils.dom.id('taskSearch'), 'input', (e) => {
+                filterTasks(e.target.value);
+            });
 
-  async function loadTasks() {
-    const tbody = DOM.id('tasksBody');
-    try {
-      const { data: tasks, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('assigned_to', currentProfile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      allUserTasks = tasks || [];
-      renderListView(allUserTasks);
-      renderKanbanView(allUserTasks);
-
-    } catch (error) {
-      console.error('Load tasks error:', error);
-      Toast.error('Failed to load tasks');
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center">Error loading tasks.</td></tr>';
-    }
-  }
-
-  function renderListView(tasks) {
-    const tbody = DOM.id('tasksBody');
-    
-    if (!tasks || tasks.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center">No tasks assigned to you yet.</td></tr>';
-      return;
+        } catch (error) {
+            console.error('Init error:', error);
+        }
     }
 
-    const priorityColors = {
-      'low': '#22c55e', 'medium': '#f59e0b', 'high': '#ef4444', 'urgent': '#dc2626'
+    async function loadTasks() {
+        try {
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('assigned_to', currentProfile.id)
+                .order('due_date', { ascending: true });
+
+            allTasks = tasks || [];
+            renderTasks(allTasks);
+
+        } catch (error) {
+            console.error('Load tasks error:', error);
+        }
+    }
+
+    function renderTasks(tasks) {
+        const container = Utils.dom.id('tasksContainer');
+
+        if (!tasks || tasks.length === 0) {
+            Utils.dom.setHTML(container, '<p class="text-mut" style="text-align: center; padding: 2rem;">No tasks assigned</p>');
+            return;
+        }
+
+        const statusEmoji = {
+            'assigned': '??',
+            'in_progress': '?',
+            'submitted': '??',
+            'approved': '?',
+            'rejected': '?'
+        };
+
+        const priorityColors = {
+            'low': '#22c55e',
+            'medium': '#f59e0b',
+            'high': '#ef4444',
+            'urgent': '#dc2626'
+        };
+
+        const html = tasks.map(task => {
+            const isOverdue = task.due_date && Utils.time.isOverdue(task.due_date);
+            const borderColor = task.status === 'approved' ? '#22c55e' : 
+                               task.status === 'rejected' ? '#ef4444' : 'var(--brand)';
+
+            let actions = '';
+            if (task.status === 'assigned') {
+                actions = '<button class="btn" onclick="updateStatus(' + "'" + task.id + "'" + ', ' + "'in_progress'" + ')" style="padding: 8px 12px; font-size: 0.9rem;">Start Working</button>';
+            } else if (task.status === 'in_progress') {
+                actions = '<button class="btn" onclick="updateStatus(\'' + task.id + '\', \'submitted\')" style="padding: 8px 12px; font-size: 0.9rem;">Submit for Review</button>';
+            } else if (task.status === 'rejected') {
+                actions = '<button class="btn secondary" onclick="updateStatus(\'' + task.id + '\', \'in_progress\')" style="padding: 8px 12px; font-size: 0.9rem;">Rework</button>';
+            }
+
+            return \
+                <div style="background: var(--elev); padding: 1.5rem; border-radius: 8px; border-left: 4px solid \; cursor: pointer;" onclick="viewTask('\')">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                        <h3 style="margin: 0; font-size: 1.1rem;">\</h3>
+                        <span class="pill status-\">\ \</span>
+                    </div>
+                    
+                    \
+                    
+                    <div style="display: flex; gap: 2rem; font-size: 0.9rem; color: var(--mut); margin: 1rem 0;">
+                        <span>?? Priority: <span style="color: \; font-weight: 600;">\</span></span>
+                        <span>?? Due: \\</span>
+                    </div>
+                    
+                    \
+                </div>
+            \;
+        }).join('');
+
+        Utils.dom.setHTML(container, html);
+    }
+
+    function filterTasks(search) {
+        const filtered = allTasks.filter(t =>
+            t.title.toLowerCase().includes(search.toLowerCase()) ||
+            t.description?.toLowerCase().includes(search.toLowerCase())
+        );
+        renderTasks(filtered);
+    }
+
+    window.viewTask = async (taskId) => {
+        try {
+            const task = allTasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            Utils.dom.setText(Utils.dom.id('taskModalTitle'), task.title);
+
+            let actions = '';
+            if (task.status === 'assigned') {
+                actions = '<button class="btn" onclick="updateStatus(\'' + task.id + '\', \'in_progress\')" style="width: 100%; margin-top: 1rem;">Start Working</button>';
+            } else if (task.status === 'in_progress') {
+                actions = '<button class="btn" onclick="updateStatus(\'' + task.id + '\', \'submitted\')" style="width: 100%; margin-top: 1rem;">Submit for Review</button>';
+            } else if (task.status === 'rejected') {
+                actions = '<button class="btn secondary" onclick="updateStatus(\'' + task.id + '\', \'in_progress\')" style="width: 100%; margin-top: 1rem;">Rework Task</button>';
+            }
+
+            const content = \
+                <div class="toolbar vertical">
+                    <div>
+                        <label>Title</label>
+                        <input type="text" value="\" disabled class="input">
+                    </div>
+
+                    <div>
+                        <label>Description</label>
+                        <textarea disabled class="input" style="min-height: 100px;">\</textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label>Status</label>
+                            <input type="text" value="\" disabled class="input">
+                        </div>
+                        <div>
+                            <label>Priority</label>
+                            <input type="text" value="\" disabled class="input">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label>Due Date</label>
+                        <input type="text" value="\" disabled class="input">
+                    </div>
+
+                    \
+
+                    \
+                </div>
+            \;
+
+            Utils.dom.setHTML(Utils.dom.id('taskModalContent'), content);
+            Utils.dom.id('taskModal').style.display = 'flex';
+
+        } catch (error) {
+            console.error('View task error:', error);
+        }
     };
-    const statusIcons = {
-      'assigned': '📥', 'in_progress': '🔄', 'submitted': '📤', 'approved': '✅', 'rejected': '❌'
+
+    window.closeTaskModal = () => {
+        Utils.dom.id('taskModal').style.display = 'none';
     };
 
-    tbody.innerHTML = tasks.map(task => `
-      <tr onclick="viewTask('${task.id}')" style="cursor: pointer;">
-        <td><strong>${task.title}</strong></td>
-        <td><span class="badge badge-primary">${statusIcons[task.status] || ''} ${task.status}</span></td>
-        <td><span style="color: ${priorityColors[task.priority]}; font-weight: 600;">${task.priority}</span></td>
-        <td>${new Date(task.due_date).toLocaleDateString()}</td>
-        <td>
-          <button class="btn btn-sm btn-primary" onclick="viewTask('${task.id}'); event.stopPropagation();">View</button>
-        </td>
-      </tr>
-    `).join('');
-  }
+    window.updateStatus = async (taskId, newStatus) => {
+        if (!confirm('Update task status?')) return;
 
-  function renderKanbanView(tasks) {
-    const statuses = ['assigned', 'in_progress', 'submitted', 'approved', 'rejected'];
-    
-    statuses.forEach(status => {
-      const column = DOM.id(`kanban-${status}`);
-      const tasksForStatus = tasks.filter(t => t.status === status);
+        try {
+            const { error } = await supabase
+                .from('tasks')
+                .update({ status: newStatus, updated_at: new Date().toISOString() })
+                .eq('id', taskId);
 
-      if (!tasksForStatus || tasksForStatus.length === 0) {
-        column.innerHTML = '<p class="text-muted" style="text-align: center; padding: 1rem;">No tasks</p>';
-        return;
-      }
+            if (error) throw error;
 
-      const priorityColors = {
-        'low': '#22c55e', 'medium': '#f59e0b', 'high': '#ef4444', 'urgent': '#dc2626'
-      };
+            const messages = {
+                'in_progress': '? Task marked as in progress!',
+                'submitted': '? Task submitted for review!',
+            };
 
-      column.innerHTML = tasksForStatus.map(task => `
-        <div class="kanban-card" onclick="viewTask('${task.id}')">
-          <div class="kanban-card-title">${task.title}</div>
-          <div class="text-muted" style="font-size: 0.8rem;">Due: ${new Date(task.due_date).toLocaleDateString()}</div>
-          <span class="kanban-card-priority" style="background-color: ${priorityColors[task.priority]}33; color: ${priorityColors[task.priority]};">
-            ${task.priority}
-          </span>
-        </div>
-      `).join('');
-    });
-  }
+            alert(messages[newStatus] || 'Task updated!');
+            window.closeTaskModal();
+            await loadTasks();
 
-  function filterMyTasks() {
-    const search = DOM.id('taskSearch')?.value.toLowerCase() || '';
-    const filter = DOM.id('taskFilter')?.value || '';
+        } catch (error) {
+            console.error('Update error:', error);
+            alert('Failed to update task');
+        }
+    };
 
-    const filtered = allUserTasks.filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(search) ||
-                           (task.description && task.description.toLowerCase().includes(search));
-      const matchesFilter = !filter || task.status === filter;
-      return matchesSearch && matchesFilter;
-    });
-
-    const viewMode = DOM.id('taskViewMode')?.value || 'list';
-    if (viewMode === 'list') {
-      renderListView(filtered);
-    } else {
-      renderKanbanView(filtered);
-    }
-  }
-
-  window.changeViewMode = () => {
-    const mode = DOM.id('taskViewMode')?.value;
-    const listView = DOM.id('listView');
-    const kanbanView = DOM.id('kanbanView');
-
-    if (mode === 'kanban') {
-      DOM.hide(listView);
-      DOM.show(kanbanView);
-      renderKanbanView(allUserTasks);
-    } else {
-      DOM.show(listView);
-      DOM.hide(kanbanView);
-      renderListView(allUserTasks);
-    }
-  };
-
-  window.viewTask = async (taskId) => {
-    try {
-      const task = allUserTasks.find(t => t.id === taskId);
-      if (!task) return;
-
-      let actionButtons = '';
-      
-      if (task.status === 'assigned') {
-        actionButtons = `<button class="btn btn-primary btn-block mt-2" onclick="updateTaskStatus('${task.id}', 'in_progress')">Start Working</button>`;
-      } else if (task.status === 'in_progress') {
-        actionButtons = `<button class="btn btn-primary btn-block mt-2" onclick="updateTaskStatus('${task.id}', 'submitted')">Submit for Review</button>`;
-      } else if (task.status === 'rejected') {
-        actionButtons = `<button class="btn btn-secondary btn-block mt-2" onclick="updateTaskStatus('${task.id}', 'in_progress')">Rework Task</button>`;
-      }
-
-      const statusEmoji = {
-        'assigned': '📥', 'in_progress': '🔄', 'submitted': '📤', 'approved': '✅', 'rejected': '❌'
-      };
-
-      const content = `
-        <div class="form-group">
-          <label>Task Title</label>
-          <input type="text" value="${task.title}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea disabled style="min-height: 100px;">${task.description || 'No description provided.'}</textarea>
-        </div>
-        <div class="grid grid-2">
-          <div class="form-group">
-            <label>Status</label>
-            <input type="text" value="${statusEmoji[task.status] || ''} ${task.status}" disabled>
-          </div>
-          <div class="form-group">
-            <label>Priority</label>
-            <input type="text" value="${task.priority}" disabled>
-          </div>
-        </div>
-        <div class="grid grid-2">
-          <div class="form-group">
-            <label>Due Date</label>
-            <input type="text" value="${new Date(task.due_date).toLocaleDateString()}" disabled>
-          </div>
-          <div class="form-group">
-            <label>Created</label>
-            <input type="text" value="${new Date(task.created_at).toLocaleString()}" disabled>
-          </div>
-        </div>
-        ${actionButtons}
-      `;
-
-      DOM.setText(DOM.id('taskModalTitle'), task.title);
-      DOM.setHTML(DOM.id('taskModalContent'), content);
-      DOM.removeClass(DOM.id('taskModal'), 'hidden');
-
-    } catch (error) {
-      console.error('View task error:', error);
-      Toast.error('Failed to load task details');
-    }
-  };
-
-  window.closeTaskModal = () => {
-    DOM.addClass(DOM.id('taskModal'), 'hidden');
-  };
-
-  window.updateTaskStatus = async (taskId, newStatus) => {
-    if (!confirm(`Are you sure you want to update the task status to "${newStatus}"?`)) return;
-
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', taskId);
-
-      if (error) throw error;
-
-      const messages = {
-        'in_progress': 'Task marked as in progress!',
-        'submitted': 'Task submitted for review!',
-      };
-
-      Toast.success(messages[newStatus] || 'Task updated!');
-      window.closeTaskModal();
-      await loadTasks();
-
-    } catch (error) {
-      console.error('Update task error:', error);
-      Toast.error(error.message || 'Failed to update task');
-    }
-  };
-
-  document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init);
 
 })();
 
