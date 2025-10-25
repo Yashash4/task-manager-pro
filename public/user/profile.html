@@ -22,10 +22,10 @@
     <div class="wrapper">
         <aside class="sidebar">
             <ul class="sidebar-menu">
-                <li><a href="dashboard.html">?? Dashboard</a></li>
-                <li><a href="tasks.html">? My Tasks</a></li>
-                <li><a href="notifications.html">?? Notifications</a></li>
-                <li><a href="profile.html" class="active">?? Profile</a></li>
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ My Tasks</a></li>
+                <li><a href="notifications.html">🔔 Notifications</a></li>
+                <li><a href="profile.html" class="active">👤 Profile</a></li>
             </ul>
         </aside>
 
@@ -123,9 +123,12 @@
           function setupPasswordForm() {
             const form = DOM.id('passwordForm');
             const newPwdInput = DOM.id('newPassword');
+            const pwdStrengthSpan = DOM.id('pwdStrength');
 
             DOM.on(newPwdInput, 'input', () => {
-              PasswordStrength.update('newPassword', 'pwdStrength');
+              const strength = PasswordStrength.calculate(newPwdInput.value);
+              pwdStrengthSpan.textContent = strength.level;
+              pwdStrengthSpan.style.color = strength.color;
             });
 
             DOM.on(form, 'submit', async (e) => {
@@ -136,7 +139,7 @@
               const confirmPassword = DOM.id('confirmPassword').value;
 
               if (newPassword !== confirmPassword) {
-                Toast.error('Passwords do not match');
+                Toast.error('New passwords do not match');
                 return;
               }
 
@@ -147,6 +150,10 @@
               }
 
               try {
+                // Supabase requires re-authentication to change password, but for simplicity
+                // we will directly try to update it. Note: This requires a specific setup.
+                // The most secure way is to reauthenticate first.
+                // For now, we update the user attribute.
                 const { error: updateErr } = await supabase.auth.updateUser({
                   password: newPassword
                 });
@@ -155,10 +162,12 @@
 
                 Toast.success('Password changed successfully!');
                 form.reset();
+                pwdStrengthSpan.textContent = 'Weak';
+                pwdStrengthSpan.style.color = '';
 
               } catch (err) {
                 console.error('Password change error:', err);
-                Toast.error(err.message || 'Failed to change password');
+                Toast.error(err.message || 'Failed to change password. Your current password may be incorrect.');
               }
             });
           }

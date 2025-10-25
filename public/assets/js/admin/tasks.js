@@ -53,12 +53,13 @@ let allTeamUsers = []; // Cache for user data to avoid complex joins
     try {
       if (!currentProfile.room_id) return;
 
+      // ✅ FIX: The .contains() filter for JSONB requires a stringified array.
       const { data: users, error } = await supabase
         .from('users_info')
         .select('id, username')
         .eq('room_id', currentProfile.room_id)
         .eq('approved', true)
-        .contains('role_flags', ['user']);
+        .contains('role_flags', '["user"]'); // Changed from ['user'] to '["user"]'
 
       if (error) throw error;
 

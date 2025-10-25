@@ -22,10 +22,10 @@
     <div class="wrapper">
         <aside class="sidebar">
             <ul class="sidebar-menu">
-                <li><a href="dashboard.html">?? Dashboard</a></li>
-                <li><a href="tasks.html">? My Tasks</a></li>
-                <li><a href="notifications.html" class="active">?? Notifications</a></li>
-                <li><a href="profile.html">?? Profile</a></li>
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ My Tasks</a></li>
+                <li><a href="notifications.html" class="active">🔔 Notifications</a></li>
+                <li><a href="profile.html">👤 Profile</a></li>
             </ul>
         </aside>
 
@@ -71,21 +71,21 @@
           }
 
           async function loadNotifications() {
+            const container = DOM.id('notificationsContainer');
             try {
-              const { data: notifications } = await supabase
+              const { data: notifications, error } = await supabase
                 .from('notifications')
                 .select('*')
                 .eq('user_id', currentProfile.id)
                 .order('created_at', { ascending: false });
 
-              const container = DOM.id('notificationsContainer');
+              if (error) throw error;
 
               if (!notifications || notifications.length === 0) {
                 DOM.setHTML(container, '<p class="text-muted">No notifications</p>');
                 return;
               }
 
-              // ✅ FIXED: Replaced backslash with backticks for template literal
               const html = notifications.map(notif => `
                 <div style="padding: 1rem; background-color: ${notif.is_read ? 'var(--bg-dark)' : 'var(--bg-darker)'}; border-left: 4px solid var(--primary-color); border-radius: var(--radius-md); margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
                   <div>
@@ -100,6 +100,7 @@
 
             } catch (error) {
               console.error('Load notifications error:', error);
+              DOM.setHTML(container, '<p class="text-muted">Error loading notifications.</p>');
             }
           }
 
