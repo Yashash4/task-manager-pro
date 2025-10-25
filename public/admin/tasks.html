@@ -116,6 +116,19 @@
         </div>
     </div>
 
+    <div class="modal-overlay hidden" id="taskDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="taskDetailTitle">Task Details</h2>
+                <button onclick="closeTaskDetailModal()" class="btn btn-secondary btn-sm">X</button>
+            </div>
+            <div class="modal-body" id="taskDetailContent">
+                </div>
+            <div class="modal-footer" id="taskDetailFooter">
+                </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="../assets/js/core/supabaseClient.js"></script>
     <script src="../assets/js/core/utils.js"></script>
