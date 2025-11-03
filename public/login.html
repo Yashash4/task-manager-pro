@@ -1,92 +1,46 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Login - Task Manager</title>
-
     <link rel="stylesheet" href="assets/css/main.css">
-
     <link rel="stylesheet" href="assets/css/components/buttons-forms.css">
-
 </head>
-
 <body class="auth-page">
-
     <div class="wrap" style="max-width: 450px; margin-top: 5rem;">
-
         <div class="card">
-
             <h1 class="h1">Login</h1>
-
             <p class="text-secondary" style="margin-bottom: 1.5rem;">Welcome back to Task Manager</p>
-
             
-
             <form id="loginForm">
-
                 <div class="toolbar vertical">
-
                     <div class="form-group">
-
                         <label for="email">Email</label>
-
                         <input type="email" id="email" placeholder="your@email.com" class="input" required>
-
                     </div>
-
-
 
                     <div class="form-group">
-
                         <label for="password">Password</label>
-
                         <input type="password" id="password" placeholder="Enter your password" class="input" required>
-
                     </div>
-
-
 
                     <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem;">Login</button>
 
-
-
                     <div style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
-
                         <a href="#" style="color: var(--primary-color);">Forgot password?</a>
-
                         <span> | </span>
-
                         <a href="signup.html" style="color: var(--primary-color);">Create account</a>
-
                     </div>
-
                 </div>
-
             </form>
-
         </div>
-
     </div>
 
-
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-
-    <script src="assets/js/lib/supabaseClient.js"></script>
-
-    <script src="assets/js/utility.js"></script>
-
-    <script src="assets/js/auth.js"></script>
-
+    <script src="assets/js/core/supabaseClient.js"></script>
+    <script src="assets/js/core/utils.js"></script>
+    <script src="assets/js/core/validation.js"></script>
+    <script src="assets/js/core/auth.js"></script>
 </body>
-
 </html>
-
-
-
