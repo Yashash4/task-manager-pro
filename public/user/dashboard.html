@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard - Task Manager</title>
+    <title>User Dashboard - Task Manager Pro</title>
     <link rel="stylesheet" href="../assets/css/main.css">
     <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
     <link rel="stylesheet" href="../assets/css/components/task-cards.css">
@@ -12,32 +12,114 @@
 </head>
 <body>
     <header class="topbar">
-        <div class="brand"><span class="dot"></span> Task Manager</div>
+        <div class="brand">
+            <span class="dot"></span> Task Manager Pro
+        </div>
         <nav class="nav">
-            <a href="dashboard.html" class="active">Dashboard</a>
-            <a href="tasks.html">My Tasks</a>
-            <a href="#" id="logoutBtn" data-logout>Logout</a>
+            <a href="dashboard.html" class="active">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </a>
+            <a href="tasks.html">
+                <i class="fas fa-tasks"></i> My Tasks
+            </a>
+            <a href="notifications.html">
+                <i class="fas fa-bell"></i> Notifications
+            </a>
+            <a href="profile.html">
+                <i class="fas fa-user"></i> Profile
+            </a>
+            <a href="#" data-logout>
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
         </nav>
     </header>
 
     <main class="wrap">
-        <h1 class="h1">Welcome, <span id="userName">User</span>!</h1>
-
-        <div class="grid cols-2">
-            <div class="card">
-                <h2>My Statistics</h2>
-                <div id="userStatsContainer">Loading...</div>
-            </div>
-
-            <div class="card">
-                <h2>Task Status Overview</h2>
-                <div id="taskStatusContainer">Loading...</div>
+        <div class="flex-between mb-3">
+            <div>
+                <h1 class="h1" style="margin: 0;">Welcome, <span id="userName">User</span>!</h1>
+                <p class="text-muted">Here's an overview of your tasks and progress.</p>
             </div>
         </div>
 
+        <!-- Statistics Cards -->
+        <div class="grid cols-4 mb-3">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">Total Tasks</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="statTotal">0</div>
+            </div>
+
+            <div class="stat-card success">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">Completed</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="statCompleted">0</div>
+            </div>
+
+            <div class="stat-card warning">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">In Progress</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="statInProgress">0</div>
+            </div>
+
+            <div class="stat-card danger">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">Overdue</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="statOverdue">0</div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid cols-2">
+            <!-- Task Status Overview -->
+            <div class="card">
+                <h2>Task Status Overview</h2>
+                <div id="taskStatusContainer" class="mt-2">
+                    <p class="text-muted text-center" style="padding: 2rem;">Loading...</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <h2>Quick Actions</h2>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <a href="tasks.html" class="btn btn-primary" style="text-align: center;">
+                        <i class="fas fa-list"></i> View All Tasks
+                    </a>
+                    <a href="notifications.html" class="btn btn-secondary" style="text-align: center;">
+                        <i class="fas fa-bell"></i> Notifications
+                    </a>
+                    <a href="profile.html" class="btn btn-secondary" style="text-align: center;">
+                        <i class="fas fa-user-edit"></i> Edit Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Deadlines -->
         <div class="card" style="margin-top: 2rem;">
-            <h2>Upcoming Deadlines</h2>
-            <div id="upcomingDeadlinesContainer">Loading...</div>
+            <h2>
+                <i class="fas fa-calendar-alt"></i> Upcoming Deadlines
+            </h2>
+            <div id="upcomingDeadlinesContainer" class="mt-2">
+                <p class="text-muted text-center" style="padding: 2rem;">Loading...</p>
+            </div>
         </div>
     </main>
 
@@ -46,6 +128,7 @@
     <script src="../assets/js/core/utils.js"></script>
     <script src="../assets/js/core/validation.js"></script>
     <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/core/notifications.js"></script>
     <script src="../assets/js/user/dashboard.js"></script>
 </body>
 </html>

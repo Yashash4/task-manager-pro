@@ -1,350 +1,352 @@
-// user/tasks.js - Complete User Tasks Management
-document.addEventListener('DOMContentLoaded', async () => {
-    const API_URL = 'http://localhost:5000/api';
-    let token = localStorage.getItem('token');
-    let userId = localStorage.getItem('userId');
-    let currentFilter = 'all';
-    let currentSort = 'dueDate';
-    let searchQuery = '';
-    
-    if (!token || !userId) {
-        window.location.href = '/login.html';
+// ==========================================
+// USER TASKS MANAGEMENT - COMPLETE
+// ==========================================
+
+(async function () {
+  const supabase = window.SUPABASE?.client?.();
+  if (!supabase) {
+    console.error('❌ Supabase client not available');
+    return;
+  }
+
+  let currentProfile = null;
+  let allTasks = [];
+  let searchQuery = '';
+  let statusFilter = '';
+
+  async function init() {
+    try {
+      const user = await API.getCurrentUser();
+      if (!user) {
+        window.location.href = '/auth/login.html';
         return;
+      }
+
+      currentProfile = await API.getUserProfile(user.id);
+      if (!currentProfile) {
+        await supabase.auth.signOut();
+        window.location.href = '/auth/login.html';
+        return;
+      }
+
+      if (!currentProfile.approved) {
+        await supabase.auth.signOut();
+        Toast.warning('Your account is awaiting admin approval.');
+        window.location.href = '/auth/login.html';
+        return;
+      }
+
+      setupEventListeners();
+      await loadTasks();
+
+    } catch (error) {
+      console.error('Init error:', error);
+      Toast.error('Failed to initialize tasks');
+    }
+  }
+
+  function setupEventListeners() {
+    // Search
+    const searchInput = document.getElementById('taskSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', debounce((e) => {
+        searchQuery = e.target.value.toLowerCase();
+        filterAndRenderTasks();
+      }, 300));
     }
 
-    // Load tasks
-    await loadTasks();
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    function setupEventListeners() {
-        // Filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                currentFilter = e.target.dataset.filter;
-                loadTasks();
-            });
-        });
-        
-        // Sort dropdown
-        document.getElementById('sortTasks')?.addEventListener('change', (e) => {
-            currentSort = e.target.value;
-            loadTasks();
-        });
-        
-        // Search
-        document.getElementById('searchTasks')?.addEventListener('input', (e) => {
-            searchQuery = e.target.value;
-            debounce(() => loadTasks(), 300)();
-        });
-        
-        // Create task button
-        document.getElementById('createTaskBtn')?.addEventListener('click', openCreateTaskModal);
-        
-        // Task modal close
-        document.getElementById('closeTaskModal')?.addEventListener('click', closeTaskModal);
-        
-        // Save task
-        document.getElementById('saveTaskBtn')?.addEventListener('click', saveTask);
+    // Status filter
+    const statusSelect = document.getElementById('taskStatusFilter');
+    if (statusSelect) {
+      statusSelect.addEventListener('change', (e) => {
+        statusFilter = e.target.value;
+        filterAndRenderTasks();
+      });
     }
-    
-    async function loadTasks() {
-        try {
-            let url = `${API_URL}/users/${userId}/tasks?`;
-            
-            if (currentFilter !== 'all') {
-                url += `filter=${currentFilter}&`;
-            }
-            
-            if (currentSort) {
-                url += `sort=${currentSort}&`;
-            }
-            
-            if (searchQuery) {
-                url += `search=${encodeURIComponent(searchQuery)}&`;
-            }
-            
-            const res = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                renderTasks(data.tasks);
-                updateTaskCount(data.tasks.length);
-            }
-        } catch (error) {
-            console.error('Error loading tasks:', error);
-            showNotification('Failed to load tasks', 'error');
-        }
+  }
+
+  async function loadTasks() {
+    try {
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('assigned_to', currentProfile.id)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      allTasks = tasks || [];
+      filterAndRenderTasks();
+
+    } catch (error) {
+      console.error('Load tasks error:', error);
+      Toast.error('Failed to load tasks');
     }
+  }
+
+  function filterAndRenderTasks() {
+    let filtered = allTasks;
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(task =>
+        task.title.toLowerCase().includes(searchQuery) ||
+        (task.description && task.description.toLowerCase().includes(searchQuery))
+      );
+    }
+
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter(task => task.status === statusFilter);
+    }
+
+    renderTasks(filtered);
+  }
+
+  function renderTasks(tasks) {
+    const container = document.getElementById('tasksContainer');
     
-    function renderTasks(tasks) {
-        const container = document.getElementById('tasksContainer');
-        if (!container) return;
-        
-        if (!tasks || tasks.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-tasks"></i>
-                    <h3>No tasks found</h3>
-                    <p>Create your first task to get started</p>
-                    <button class="btn btn-primary" onclick="document.getElementById('createTaskBtn').click()">
-                        <i class="fas fa-plus"></i> Create Task
-                    </button>
-                </div>
-            `;
-            return;
-        }
-        
-        container.innerHTML = tasks.map(task => `
-            <div class="task-card" data-task-id="${task.id}">
-                <div class="task-card-header">
-                    <div class="task-checkbox">
-                        <input type="checkbox" 
-                               id="task-${task.id}" 
-                               ${task.status === 'completed' ? 'checked' : ''}
-                               onchange="toggleTaskStatus(${task.id}, this.checked)">
-                        <label for="task-${task.id}"></label>
-                    </div>
-                    <div class="task-title ${task.status === 'completed' ? 'completed' : ''}">
-                        <h4>${escapeHtml(task.title)}</h4>
-                        <p>${escapeHtml(task.description || '')}</p>
-                    </div>
-                    <div class="task-actions">
-                        <button class="btn-icon" onclick="editTask(${task.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon" onclick="deleteTask(${task.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="task-card-footer">
-                    <div class="task-meta">
-                        <span class="badge badge-${getPriorityClass(task.priority)}">${task.priority}</span>
-                        <span class="badge badge-${getStatusClass(task.status)}">${task.status}</span>
-                        ${task.room ? `<span class="badge badge-info">${escapeHtml(task.room)}</span>` : ''}
-                    </div>
-                    <div class="task-due ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''}">
-                        <i class="fas fa-clock"></i> ${formatDueDate(task.dueDate)}
-                    </div>
-                </div>
+    if (!tasks || tasks.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-tasks"></i>
+          <h3>No tasks found</h3>
+          <p>${searchQuery || statusFilter ? 'Try adjusting your filters' : 'You have no assigned tasks yet'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = tasks.map(task => {
+      const isOverdue = TimeHelper.isOverdue(task.due_date) && task.status !== 'approved' && task.status !== 'rejected';
+      const statusBadge = getStatusBadge(task.status);
+      const priorityBadge = getPriorityBadge(task.priority);
+
+      return `
+        <div class="task-card ${isOverdue ? 'overdue' : ''}" data-task-id="${task.id}" onclick="viewTaskDetails('${task.id}')">
+          <div class="task-card-header">
+            <div class="task-title">
+              <h4>${escapeHtml(task.title)}</h4>
+              ${task.description ? `<p>${escapeHtml(task.description.substring(0, 100))}${task.description.length > 100 ? '...' : ''}</p>` : ''}
             </div>
-        `).join('');
+            <div class="task-actions">
+              <button class="btn-icon" onclick="event.stopPropagation(); viewTaskDetails('${task.id}')" title="View Details">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="task-card-footer">
+            <div class="task-meta">
+              ${priorityBadge}
+              ${statusBadge}
+            </div>
+            <div class="task-due ${isOverdue ? 'overdue' : ''}">
+              <i class="fas fa-calendar"></i> ${TimeHelper.formatDate(task.due_date)}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.viewTaskDetails = function(taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const modal = document.getElementById('taskDetailModal');
+    const isOverdue = TimeHelper.isOverdue(task.due_date);
+    const daysLeft = TimeHelper.daysUntil(task.due_date);
+
+    let daysText = '';
+    if (isOverdue) {
+      daysText = `Overdue by ${Math.abs(daysLeft)} days`;
+    } else if (daysLeft === 0) {
+      daysText = 'Due TODAY';
+    } else if (daysLeft === 1) {
+      daysText = 'Due tomorrow';
+    } else {
+      daysText = `Due in ${daysLeft} days`;
     }
-    
-    window.toggleTaskStatus = async function(taskId, completed) {
-        try {
-            const status = completed ? 'completed' : 'pending';
-            const res = await fetch(`${API_URL}/tasks/${taskId}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status })
-            });
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                showNotification('Task updated successfully', 'success');
-                await loadTasks();
-            }
-        } catch (error) {
-            console.error('Error updating task:', error);
-            showNotification('Failed to update task', 'error');
-        }
+
+    document.getElementById('taskDetailTitle').textContent = task.title;
+
+    const contentHTML = `
+      <div class="form-group">
+        <label>Title</label>
+        <div style="padding: 10px; background: var(--bg-darker); border-radius: var(--radius-md);">
+          ${escapeHtml(task.title)}
+        </div>
+      </div>
+
+      ${task.description ? `
+        <div class="form-group">
+          <label>Description</label>
+          <div style="padding: 10px; background: var(--bg-darker); border-radius: var(--radius-md); max-height: 200px; overflow-y: auto;">
+            ${escapeHtml(task.description)}
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="grid cols-2">
+        <div class="form-group">
+          <label>Status</label>
+          <span class="pill status-${task.status}">${formatStatus(task.status)}</span>
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <span class="badge priority-${task.priority}">${task.priority.toUpperCase()}</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Due Date</label>
+        <div style="padding: 10px; background: var(--bg-darker); border-radius: var(--radius-md);">
+          ${TimeHelper.formatDate(task.due_date)} <span style="color: ${isOverdue ? 'var(--danger-color)' : 'var(--text-muted)'};">(${daysText})</span>
+        </div>
+      </div>
+
+      ${task.rejection_reason ? `
+        <div class="alert alert-error">
+          <i class="fas fa-exclamation-circle"></i>
+          <div class="alert-content">
+            <div class="alert-title">Rejection Reason</div>
+            <div class="alert-message">${escapeHtml(task.rejection_reason)}</div>
+          </div>
+        </div>
+      ` : ''}
+    `;
+
+    document.getElementById('taskDetailContent').innerHTML = contentHTML;
+
+    // Action buttons
+    let actionsHTML = '';
+    if (task.status === 'assigned') {
+      actionsHTML = `
+        <button class="btn btn-primary" onclick="startTask('${task.id}')">
+          <i class="fas fa-play"></i> Start Working
+        </button>
+      `;
+    } else if (task.status === 'in_progress') {
+      actionsHTML = `
+        <button class="btn btn-success" onclick="submitTask('${task.id}')">
+          <i class="fas fa-check"></i> Submit for Review
+        </button>
+        <button class="btn btn-secondary" onclick="closeTaskModal()">
+          Cancel
+        </button>
+      `;
+    } else if (task.status === 'rejected') {
+      actionsHTML = `
+        <button class="btn btn-warning" onclick="reworkTask('${task.id}')">
+          <i class="fas fa-redo"></i> Rework Task
+        </button>
+      `;
+    }
+
+    actionsHTML += `<button class="btn btn-secondary" onclick="closeTaskModal()">Close</button>`;
+    document.getElementById('taskDetailActions').innerHTML = actionsHTML;
+
+    modal.style.display = 'flex';
+  };
+
+  window.startTask = async function(taskId) {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: 'in_progress' })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      Toast.success('Task started! Good luck!');
+      closeTaskModal();
+      await loadTasks();
+    } catch (error) {
+      console.error('Start task error:', error);
+      Toast.error('Failed to start task');
+    }
+  };
+
+  window.submitTask = async function(taskId) {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          status: 'submitted',
+          submitted_at: new Date().toISOString()
+        })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      Toast.success('Task submitted for review!');
+      closeTaskModal();
+      await loadTasks();
+    } catch (error) {
+      console.error('Submit task error:', error);
+      Toast.error('Failed to submit task');
+    }
+  };
+
+  window.reworkTask = async function(taskId) {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          status: 'in_progress',
+          rejection_reason: null
+        })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      Toast.success('Task rework started!');
+      closeTaskModal();
+      await loadTasks();
+    } catch (error) {
+      console.error('Rework task error:', error);
+      Toast.error('Failed to start rework');
+    }
+  };
+
+  window.closeTaskModal = function() {
+    const modal = document.getElementById('taskDetailModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  };
+
+  function getStatusBadge(status) {
+    return `<span class="pill status-${status}">${formatStatus(status)}</span>`;
+  }
+
+  function getPriorityBadge(priority) {
+    return `<span class="badge priority-${priority}">${priority}</span>`;
+  }
+
+  function formatStatus(status) {
+    return status.replace('_', ' ').toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
     };
-    
-    window.editTask = async function(taskId) {
-        try {
-            const res = await fetch(`${API_URL}/tasks/${taskId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                openEditTaskModal(data.task);
-            }
-        } catch (error) {
-            console.error('Error loading task:', error);
-            showNotification('Failed to load task', 'error');
-        }
-    };
-    
-    window.deleteTask = async function(taskId) {
-        if (!confirm('Are you sure you want to delete this task?')) return;
-        
-        try {
-            const res = await fetch(`${API_URL}/tasks/${taskId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                showNotification('Task deleted successfully', 'success');
-                await loadTasks();
-            }
-        } catch (error) {
-            console.error('Error deleting task:', error);
-            showNotification('Failed to delete task', 'error');
-        }
-    };
-    
-    function openCreateTaskModal() {
-        const modal = document.getElementById('taskModal');
-        if (!modal) return;
-        
-        document.getElementById('modalTitle').textContent = 'Create New Task';
-        document.getElementById('taskForm').reset();
-        document.getElementById('taskId').value = '';
-        modal.style.display = 'block';
-    }
-    
-    function openEditTaskModal(task) {
-        const modal = document.getElementById('taskModal');
-        if (!modal) return;
-        
-        document.getElementById('modalTitle').textContent = 'Edit Task';
-        document.getElementById('taskId').value = task.id;
-        document.getElementById('taskTitle').value = task.title;
-        document.getElementById('taskDescription').value = task.description || '';
-        document.getElementById('taskPriority').value = task.priority;
-        document.getElementById('taskStatus').value = task.status;
-        document.getElementById('taskDueDate').value = task.dueDate ? task.dueDate.split('T')[0] : '';
-        document.getElementById('taskRoom').value = task.roomId || '';
-        
-        modal.style.display = 'block';
-    }
-    
-    function closeTaskModal() {
-        const modal = document.getElementById('taskModal');
-        if (modal) modal.style.display = 'none';
-    }
-    
-    async function saveTask() {
-        const taskId = document.getElementById('taskId').value;
-        const taskData = {
-            title: document.getElementById('taskTitle').value,
-            description: document.getElementById('taskDescription').value,
-            priority: document.getElementById('taskPriority').value,
-            status: document.getElementById('taskStatus').value,
-            dueDate: document.getElementById('taskDueDate').value,
-            roomId: document.getElementById('taskRoom').value || null
-        };
-        
-        if (!taskData.title) {
-            showNotification('Please enter a task title', 'error');
-            return;
-        }
-        
-        try {
-            const url = taskId ? `${API_URL}/tasks/${taskId}` : `${API_URL}/tasks`;
-            const method = taskId ? 'PUT' : 'POST';
-            
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(taskData)
-            });
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                showNotification(`Task ${taskId ? 'updated' : 'created'} successfully`, 'success');
-                closeTaskModal();
-                await loadTasks();
-            } else {
-                showNotification(data.message || 'Failed to save task', 'error');
-            }
-        } catch (error) {
-            console.error('Error saving task:', error);
-            showNotification('Failed to save task', 'error');
-        }
-    }
-    
-    function updateTaskCount(count) {
-        const counter = document.getElementById('taskCount');
-        if (counter) counter.textContent = count;
-    }
-    
-    function getPriorityClass(priority) {
-        const map = { high: 'danger', medium: 'warning', low: 'info' };
-        return map[priority?.toLowerCase()] || 'secondary';
-    }
-    
-    function getStatusClass(status) {
-        const map = { 
-            completed: 'success', 
-            'in progress': 'primary', 
-            pending: 'warning', 
-            overdue: 'danger' 
-        };
-        return map[status?.toLowerCase()] || 'secondary';
-    }
-    
-    function formatDueDate(date) {
-        if (!date) return 'No due date';
-        const d = new Date(date);
-        const now = new Date();
-        const diff = d - now;
-        const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-        
-        if (days < 0) return `Overdue by ${Math.abs(days)} days`;
-        if (days === 0) return 'Due today';
-        if (days === 1) return 'Due tomorrow';
-        return `Due in ${days} days`;
-    }
-    
-    function isOverdue(date) {
-        return date && new Date(date) < new Date();
-    }
-    
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    function showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-    
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-});
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+
+})();
+
+console.log('✅ User tasks loaded');

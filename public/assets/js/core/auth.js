@@ -1,5 +1,5 @@
 // ==========================================
-// AUTHENTICATION HANDLER
+// AUTHENTICATION HANDLER - COMPLETE
 // ==========================================
 
 (function () {
@@ -9,9 +9,9 @@
     return;
   }
 
-  const loginForm = DOM.id('loginForm');
-  const signupForm = DOM.id('signupForm');
-  const forgotForm = DOM.id('forgotForm');
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+  const forgotForm = document.getElementById('forgotForm');
 
   // ========== LOGIN HANDLER ==========
   if (loginForm) {
@@ -19,12 +19,18 @@
       e.preventDefault();
       FormValidator.clearErrors('loginForm');
       
-      const email = DOM.id('email')?.value.trim();
-      const password = DOM.id('password')?.value.trim();
+      const email = document.getElementById('email')?.value.trim();
+      const password = document.getElementById('password')?.value.trim();
 
       const emailError = FormValidator.validateEmail(email);
-      if (emailError) { Toast.error(emailError); return; }
-      if (!password) { Toast.error('Password is required.'); return; }
+      if (emailError) { 
+        Toast.error(emailError); 
+        return; 
+      }
+      if (!password) { 
+        Toast.error('Password is required.'); 
+        return; 
+      }
 
       try {
         Toast.info('Logging in...');
@@ -81,8 +87,8 @@
 
   // ========== SIGNUP HANDLER ==========
   if (signupForm) {
-    const passwordInput = DOM.id('password');
-    const passwordStrengthSpan = DOM.id('passwordStrength');
+    const passwordInput = document.getElementById('password');
+    const passwordStrengthSpan = document.getElementById('passwordStrength');
 
     if (passwordInput && passwordStrengthSpan) {
       passwordInput.addEventListener('input', () => {
@@ -94,13 +100,13 @@
       e.preventDefault();
       FormValidator.clearErrors('signupForm');
       
-      const username = DOM.id('username')?.value.trim();
-      const email = DOM.id('email')?.value.trim();
-      const password = DOM.id('password')?.value.trim();
-      const role = DOM.id('role')?.value;
-      const roomCodeInput = DOM.id('roomCode');
+      const username = document.getElementById('username')?.value.trim();
+      const email = document.getElementById('email')?.value.trim();
+      const password = document.getElementById('password')?.value.trim();
+      const role = document.getElementById('role')?.value;
+      const roomCodeInput = document.getElementById('roomCode');
       const roomCode = roomCodeInput ? roomCodeInput.value.trim().toUpperCase() : null;
-      const terms = DOM.id('terms')?.checked;
+      const terms = document.getElementById('terms')?.checked;
 
       // Validation
       const validationRules = {
@@ -129,7 +135,7 @@
         const firstError = Object.values(errors)[0];
         Toast.error(firstError);
         Object.keys(errors).forEach(key => {
-          const field = DOM.id(key);
+          const field = document.getElementById(key);
           if(field) field.style.borderColor = 'var(--danger-color)';
         });
         return;
@@ -208,9 +214,12 @@
       e.preventDefault();
       FormValidator.clearErrors('forgotForm');
       
-      const email = DOM.id('email')?.value.trim();
+      const email = document.getElementById('email')?.value.trim();
       const emailError = FormValidator.validateEmail(email);
-      if (emailError) { Toast.error(emailError); return; }
+      if (emailError) { 
+        Toast.error(emailError); 
+        return; 
+      }
 
       try {
         Toast.info('Sending reset link...');
@@ -250,8 +259,8 @@
 
   // ========== ROOM CODE TOGGLE ==========
   window.toggleRoomCode = () => {
-    const role = DOM.id('role')?.value;
-    const roomCodeGroup = DOM.id('roomCodeGroup');
+    const role = document.getElementById('role')?.value;
+    const roomCodeGroup = document.getElementById('roomCodeGroup');
     if (roomCodeGroup) {
       roomCodeGroup.style.display = role === 'user' ? 'block' : 'none';
     }
