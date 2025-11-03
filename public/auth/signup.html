@@ -6,67 +6,55 @@
     <title>Sign Up - Task Manager Pro</title>
     <link rel="stylesheet" href="../assets/css/main.css">
     <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="auth-page">
-    <div class="wrap" style="max-width: 450px; margin-top: 2rem;">
-        <div class="card">
-            <h1 class="h1">Create Account</h1>
-            <p class="text-secondary" style="margin-bottom: 1.5rem;">Join Task Manager Pro</p>
+    <main class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="https://via.placeholder.com/150" alt="Task Manager Pro Logo" class="auth-logo">
+                <h1>Create Account</h1>
+                <p>Get started by creating a new account.</p>
+            </div>
             
-            <form id="signupForm">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="Choose a username" class="input" required>
-                    <small class="text-muted">3-30 characters</small>
-                </div>
+            <div id="notification-container"></div>
 
+            <form id="signup-form" class="auth-form" onsubmit="handleSignup(event)">
                 <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="your@email.com" class="input" required>
+                    <label for="full-name" class="form-label">Full Name</label>
+                    <input type="text" id="full-name" name="full-name" class="form-control" required autocomplete="name">
+                    <div class="input-error-message" id="full-name-error"></div>
                 </div>
-
+                
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Min 8 characters" class="input" required>
-                    <small class="password-hint">Password strength: <span id="passwordStrength">Weak</span></small>
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" required autocomplete="email">
+                    <div class="input-error-message" id="email-error"></div>
                 </div>
 
                 <div class="form-group">
-                    <label for="role">I am a:</label>
-                    <select id="role" class="select" onchange="toggleRoomCode()" required>
-                        <option value="">Select Role</option>
-                        <option value="admin">Admin (Create Organization)</option>
-                        <option value="user">User (Join Organization)</option>
-                    </select>
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required autocomplete="new-password">
+                    <div class="input-error-message" id="password-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm-password" class="form-label">Confirm Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" class="form-control" required autocomplete="new-password">
+                    <div class="input-error-message" id="confirm-password-error"></div>
                 </div>
 
-                <div id="roomCodeGroup" class="form-group" style="display: none;">
-                    <label for="roomCode">Organization Code</label>
-                    <input type="text" id="roomCode" placeholder="6-character code" class="input" maxlength="6" style="text-transform: uppercase;">
-                    <small class="text-muted">Ask your admin for this code</small>
-                </div>
-
-                <div class="form-group checkbox">
-                    <input type="checkbox" id="terms" required>
-                    <label for="terms">I agree to Terms & Conditions</label>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-block">
-                    <i class="fas fa-user-plus"></i> Create Account
+                <button type="submit" class="btn btn-primary btn-block" id="signup-button">
+                    <span class="btn-text">Create Account</span>
+                    <div class="spinner" style="display: none;"></div>
                 </button>
-
-                <p style="text-align: center; margin: 1rem 0 0 0; color: var(--text-muted);">
-                    Already have an account? <a href="login.html" style="color: var(--primary-color);">Login</a>
-                </p>
             </form>
+            
+            <div class="auth-footer">
+                <p>Already have an account? <a href="./login.html" class="form-link">Log in</a></p>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
-    <script src="../assets/js/core/supabaseClient.js"></script>
-    <script src="../assets/js/core/utils.js"></script>
-    <script src="../assets/js/core/validation.js"></script>
-    <script src="../assets/js/core/auth.js"></script>
+    <script type="module" src="../assets/js/auth.js"></script>
 </body>
 </html>
