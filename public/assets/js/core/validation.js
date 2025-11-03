@@ -1,5 +1,5 @@
 // ==========================================
-// FORM VALIDATION (FINAL)
+// FORM VALIDATION
 // ==========================================
 
 const FormValidator = {
@@ -13,10 +13,6 @@ const FormValidator = {
   validatePassword: (password) => {
     if (!password) return 'Password is required.';
     if (password.length < 8) return 'Password must be at least 8 characters.';
-    // Removed specific char requirements for simplicity, adjust if needed
-    // if (!/[A-Z]/.test(password)) return 'Password must contain an uppercase letter.';
-    // if (!/[0-9]/.test(password)) return 'Password must contain a number.';
-    // if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) return 'Password must contain a special character.';
     return null;
   },
 
@@ -35,7 +31,6 @@ const FormValidator = {
     return null;
   },
 
-  // Generic function to run multiple validations on form data
   validateForm: (formData, rules) => {
     const errors = {};
     for (const [field, ruleFn] of Object.entries(rules)) {
@@ -48,15 +43,13 @@ const FormValidator = {
     return Object.keys(errors).length === 0 ? null : errors;
   },
 
-  // Clear visual error states from a form
   clearErrors: (formId) => {
     const form = DOM.id(formId);
     if (!form) return;
     form.querySelectorAll('input, select, textarea').forEach(input => {
-      input.style.borderColor = ''; // Reset border color
+      input.style.borderColor = '';
     });
-    // Remove any previously added error messages (if applicable)
   }
 };
 
-console.log('? Validation loaded');
+console.log('✅ Validation loaded');
