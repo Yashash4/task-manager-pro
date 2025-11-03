@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Task Manager</title>
-    <link rel="stylesheet" href="../assets/css/styles.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
+    <link rel="stylesheet" href="../assets/css/components/task-cards.css">
+    <link rel="stylesheet" href="../assets/css/components/tables-badges.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <header class="topbar">
@@ -27,7 +31,7 @@
                 <h2>Statistics</h2>
                 <div id="statsContainer">
                     <div style="text-align: center; padding: 2rem;">
-                        <p class="text-mut">Loading...</p>
+                        <p class="text-muted">Loading...</p>
                     </div>
                 </div>
             </div>
@@ -35,9 +39,9 @@
             <div class="card">
                 <h2>Quick Actions</h2>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <a href="tasks.html" class="btn" style="text-align: center;">+ Create Task</a>
-                    <a href="users.html" class="btn secondary" style="text-align: center;">?? Manage Users</a>
-                    <a href="rooms.html" class="btn secondary" style="text-align: center;">?? Manage Rooms</a>
+                    <a href="tasks.html" class="btn btn-primary" style="text-align: center;"><i class="fas fa-plus"></i> Create Task</a>
+                    <a href="users.html" class="btn btn-secondary" style="text-align: center;"><i class="fas fa-users"></i> Manage Users</a>
+                    <a href="rooms.html" class="btn btn-secondary" style="text-align: center;"><i class="fas fa-door-open"></i> Manage Rooms</a>
                 </div>
             </div>
         </div>
@@ -45,7 +49,7 @@
         <div class="card" style="margin-top: 2rem;">
             <h2>Recent Tasks</h2>
             <div id="recentTasksContainer">
-                <p class="text-mut">Loading...</p>
+                <p class="text-muted">Loading...</p>
             </div>
         </div>
     </main>
