@@ -143,3 +143,37 @@ create policy "Users can manage their own notifications" on notifications for al
 -- ROOMS_HISTORY POLICIES
 drop policy if exists "Admins can manage room history" on rooms_history;
 create policy "Admins can manage room history" on rooms_history for all to public using (is_admin(auth.uid()));
+
+-- Create notification when user requests approval
+CREATE OR REPLACE FUNCTION notify_admin_approval_request()
+RETURNS TRIGGER AS $$
+DECLARE
+  admin_id UUID;
+BEGIN
+  -- Find admin in the same room
+  SELECT id INTO admin_id
+  FROM users_info
+  WHERE room_id = NEW.room_id
+    AND role_flags @> '["admin"]'::jsonb
+    AND approved = true
+  LIMIT 1;
+  
+  IF admin_id IS NOT NULL AND NEW.approved = FALSE THEN
+    INSERT INTO notifications (user_id, type, message)
+    VALUES (
+      admin_id,
+      'approval_request',
+      'New user approval request: ' || NEW.username || ' (' || NEW.email || ')'
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger
+DROP TRIGGER IF EXISTS trigger_notify_admin_approval_request ON users_info;
+CREATE TRIGGER trigger_notify_admin_approval_request
+  AFTER INSERT ON users_info
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_admin_approval_request();

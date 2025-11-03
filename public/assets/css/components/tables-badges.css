@@ -1,0 +1,414 @@
+/* ==========================================
+   TABLES & BADGES STYLESHEET
+   Path: /public/assets/css/components/tables-badges.css
+   ========================================== */
+
+/* ==========================================
+   TABLES
+   ========================================== */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  background-color: var(--bg-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table thead {
+  background-color: var(--bg-darker);
+}
+
+.table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.table tbody tr {
+  transition: var(--transition);
+}
+
+.table tbody tr:hover {
+  background-color: rgba(34, 211, 238, 0.05);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Table variants */
+.table-striped tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.table-bordered {
+  border: 1px solid var(--border-color);
+}
+
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid var(--border-color);
+}
+
+/* Table with actions */
+.table .action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Empty state */
+.table .empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.table .empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* ==========================================
+   BADGES & PILLS
+   ========================================== */
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.badge-primary {
+  background-color: rgba(34, 211, 238, 0.2);
+  color: var(--primary-color);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+}
+
+.badge-success {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: var(--success-color);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.badge-danger {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: var(--danger-color);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-warning {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--warning-color);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.badge-info {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--info-color);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-secondary {
+  background-color: rgba(203, 213, 225, 0.2);
+  color: var(--text-secondary);
+  border: 1px solid rgba(203, 213, 225, 0.3);
+}
+
+/* Pills - Status indicators */
+.pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Task Status Pills */
+.pill.status-approved,
+.status-approved {
+  color: #dcfce7;
+  background: #102113;
+  border-color: #1b3a22;
+}
+
+.pill.status-assigned,
+.status-assigned {
+  color: #e0e7ff;
+  background: #312e81;
+  border-color: #4c1d95;
+}
+
+.pill.status-in_progress,
+.status-in_progress {
+  color: #fed7aa;
+  background: #3f2817;
+  border-color: #78350f;
+}
+
+.pill.status-submitted,
+.status-submitted {
+  color: #c7d2fe;
+  background: #131729;
+  border-color: #202a5a;
+}
+
+.pill.status-pending,
+.status-pending {
+  color: #fecaca;
+  background: #3f1a1a;
+  border-color: #7f1d1d;
+}
+
+.pill.status-rejected,
+.status-rejected {
+  color: #fecaca;
+  background: #3f1a1a;
+  border-color: #7f1d1d;
+}
+
+/* Priority Badges */
+.priority-low {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--info-color);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.priority-medium {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--warning-color);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.priority-high {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: var(--danger-color);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.priority-urgent {
+  background-color: rgba(220, 38, 38, 0.3);
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.5);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.status-badge.status-active {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: var(--success-color);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-badge.status-inactive {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: var(--danger-color);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ==========================================
+   USER AVATARS & INFO
+   ========================================== */
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.user-avatar-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 0.75rem;
+}
+
+.user-avatar-lg {
+  width: 60px;
+  height: 60px;
+  font-size: 1.25rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.user-email {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ==========================================
+   PAGINATION
+   ========================================== */
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pagination-info {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.pagination-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pagination-buttons .btn {
+  min-width: 36px;
+  padding: 6px 12px;
+}
+
+.pagination-buttons .btn.btn-primary {
+  pointer-events: none;
+}
+
+/* ==========================================
+   RESPONSIVE TABLES
+   ========================================== */
+
+@media (max-width: 768px) {
+  .table {
+    font-size: 0.9rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 10px 12px;
+  }
+  
+  /* Stack table on mobile if needed */
+  .table-mobile-stack {
+    display: block;
+  }
+  
+  .table-mobile-stack thead {
+    display: none;
+  }
+  
+  .table-mobile-stack tbody,
+  .table-mobile-stack tr,
+  .table-mobile-stack td {
+    display: block;
+    width: 100%;
+  }
+  
+  .table-mobile-stack tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+  }
+  
+  .table-mobile-stack td {
+    text-align: right;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .table-mobile-stack td:last-child {
+    border-bottom: none;
+  }
+  
+  .table-mobile-stack td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  
+  /* Pagination responsive */
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .pagination-buttons {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .badge,
+  .pill,
+  .status-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+  
+  .pagination-buttons .btn {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+  }
+}
