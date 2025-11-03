@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Rooms - Task Manager</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand"><span class="dot"></span> Task Manager</div>
+        <nav class="nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="users.html">Users</a>
+            <a href="tasks.html">Tasks</a>
+            <a href="rooms.html" class="active">Rooms</a>
+            <a href="reports.html">Reports</a>
+            <a href="#" id="logoutBtn" data-logout>Logout</a>
+        </nav>
+    </header>
+
+    <main class="wrap">
+        <h1 class="h1">Organization Management</h1>
+
+        <div class="grid cols-2">
+            <div class="card">
+                <h2>Current Organization</h2>
+                <div id="currentOrgContainer">Loading...</div>
+            </div>
+
+            <div class="card">
+                <h2>Room Code Management</h2>
+                <div id="codeManagementContainer">Loading...</div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 2rem;">
+            <h2>Code Rotation History</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Old Code</th>
+                        <th>New Code</th>
+                        <th>Rotated At</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr><td colspan="3" style="text-align: center;">Loading history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/lib/supabaseClient.js"></script>
+    <script src="../assets/js/utility.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/admin/rooms.js"></script>
+</body>
+</html>

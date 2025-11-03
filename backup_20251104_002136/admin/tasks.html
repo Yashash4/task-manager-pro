@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Tasks - Task Manager Pro</title>
+    
+    <!-- Load All CSS Files -->
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
+    <link rel="stylesheet" href="../assets/css/components/tables-badges.css">
+    <link rel="stylesheet" href="../assets/css/components/modals-notifications.css">
+    <link rel="stylesheet" href="../assets/css/components/task-cards.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="topbar">
+        <div class="brand">
+            <span class="dot"></span> Task Manager Pro
+        </div>
+        <nav class="nav">
+            <a href="dashboard.html">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </a>
+            <a href="users.html">
+                <i class="fas fa-users"></i> Users
+            </a>
+            <a href="tasks.html" class="active">
+                <i class="fas fa-tasks"></i> Tasks
+            </a>
+            <a href="rooms.html">
+                <i class="fas fa-door-open"></i> Rooms
+            </a>
+            <a href="reports.html">
+                <i class="fas fa-chart-bar"></i> Reports
+            </a>
+            
+            <!-- Notification Bell with Badge -->
+            <button class="btn-icon notification-badge" data-count="0" title="Notifications">
+                <i class="fas fa-bell"></i>
+            </button>
+            
+            <a href="#" data-logout>
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="wrap">
+        <!-- Page Header -->
+        <div class="flex-between mb-3">
+            <h1 class="h1" style="margin: 0;">Manage Tasks</h1>
+            <button class="btn btn-primary" id="createTaskBtn">
+                <i class="fas fa-plus"></i> Create Task
+            </button>
+        </div>
+
+        <!-- Statistics Cards (Optional) -->
+        <div class="grid cols-4 mb-3" style="display: none;" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">Total Tasks</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="stat-total">0</div>
+            </div>
+            
+            <div class="stat-card success">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">Approved</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="stat-approved">0</div>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">In Progress</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-spinner"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="stat-inProgress">0</div>
+            </div>
+            
+            <div class="stat-card danger">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">Pending Review</div>
+                    <div class="stat-card-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+                <div class="stat-card-value" id="stat-submitted">0</div>
+            </div>
+        </div>
+
+        <!-- Tasks Table Card -->
+        <div class="card">
+            <!-- Search and Filter -->
+            <div class="grid cols-2 mb-2">
+                <input 
+                    type="search" 
+                    id="taskSearch" 
+                    placeholder="🔍 Search tasks by title, description, or user..." 
+                    class="input"
+                >
+                <select id="taskStatusFilter" class="select">
+                    <option value="">All Status</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="submitted">Submitted for Review</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+
+            <!-- Tasks Table -->
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Task Title</th>
+                            <th>Assigned To</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Due Date</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem;">
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Loading tasks...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Create/Edit Task Modal -->
+    <div id="createTaskModal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modalTitle">Create New Task</h2>
+                <button class="btn-icon" onclick="closeCreateTaskModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <form id="createTaskForm" onsubmit="return false;">
+                    <input type="hidden" id="taskId">
+                    
+                    <div class="form-group">
+                        <label for="taskTitle">Task Title *</label>
+                        <input 
+                            type="text" 
+                            id="taskTitle" 
+                            class="input" 
+                            placeholder="Enter task title" 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskDesc">Description</label>
+                        <textarea 
+                            id="taskDesc" 
+                            class="input" 
+                            rows="4" 
+                            placeholder="Detailed task description..."
+                        ></textarea>
+                    </div>
+
+                    <div class="grid cols-2">
+                        <div class="form-group">
+                            <label for="taskAssignTo">Assign To *</label>
+                            <select id="taskAssignTo" class="select" required>
+                                <option value="">Loading users...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="taskPriority">Priority *</label>
+                            <select id="taskPriority" class="select" required>
+                                <option value="low">Low Priority</option>
+                                <option value="medium" selected>Medium Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="urgent">Urgent</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="taskDueDate">Due Date *</label>
+                        <input 
+                            type="date" 
+                            id="taskDueDate" 
+                            class="input" 
+                            required
+                        >
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCreateTaskModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-primary" onclick="submitCreateTask()">
+                    <i class="fas fa-save"></i> Save Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts - Load in Order -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/core/supabaseClient.js"></script>
+    <script src="../assets/js/core/utils.js"></script>
+    <script src="../assets/js/core/validation.js"></script>
+    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/core/notifications.js"></script>
+    <script src="../assets/js/admin/tasks-enhanced.js"></script>
+</body>
+</html>

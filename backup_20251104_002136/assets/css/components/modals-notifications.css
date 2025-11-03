@@ -1,4 +1,4 @@
-﻿/* ==========================================
+/* ==========================================
    MODALS & NOTIFICATIONS STYLESHEET
    Path: /public/assets/css/components/modals-notifications.css
    ========================================== */
@@ -224,10 +224,6 @@
   z-index: 1000;
   overflow: hidden;
   animation: slideUp 0.3s ease-out;
-}
-
-.notification-panel.hidden {
-  display: none;
 }
 
 .notification-panel-header {
