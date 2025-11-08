@@ -5,59 +5,76 @@
 // DOM Helpers
 const DOM = {
   id: (id) => document.getElementById(id),
+  class: (className) => document.querySelectorAll('.' + className),
   query: (selector) => document.querySelector(selector),
   queryAll: (selector) => document.querySelectorAll(selector),
+  create: (tag, classes = '') => {
+    const el = document.createElement(tag);
+    if (classes) el.className = classes;
+    return el;
+  },
+  remove: (el) => el?.remove(),
   hide: (el) => el?.classList.add('hidden'),
   show: (el) => el?.classList.remove('hidden'),
+  toggle: (el, className) => el?.classList.toggle(className),
   addClass: (el, className) => el?.classList.add(className),
   removeClass: (el, className) => el?.classList.remove(className),
+  hasClass: (el, className) => el?.classList.contains(className),
   setText: (el, text) => { if (el) el.textContent = text; },
   setHTML: (el, html) => { if (el) el.innerHTML = html; },
   on: (el, event, handler) => el?.addEventListener(event, handler),
+  off: (el, event, handler) => el?.removeEventListener(event, handler),
+  attr: (el, name, value) => {
+    if (value === undefined) return el?.getAttribute(name);
+    el?.setAttribute(name, value);
+  },
 };
 
 // Toast Notifications
 const Toast = {
-  show: (message, type = 'info', duration = 3500) => {
-    document.querySelectorAll('.toast').forEach(t => t.remove());
+  show: (message, type = 'info', duration = 3000) => {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
-    const icons = {
-      success: 'fas fa-check-circle',
-      error: 'fas fa-exclamation-circle',
-      warning: 'fas fa-exclamation-triangle',
-      info: 'fas fa-info-circle'
-    };
-    
-    toast.innerHTML = `
-      <i class="${icons[type] || icons.info}"></i>
-      <span>${message}</span>
-    `;
-    
+    toast.textContent = message;
     document.body.appendChild(toast);
-    setTimeout(() => { 
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(100%)';
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease-out forwards';
       setTimeout(() => toast.remove(), 300);
     }, duration);
   },
+  
   success: (message) => Toast.show(message, 'success'),
   error: (message) => Toast.show(message, 'error'),
   warning: (message) => Toast.show(message, 'warning'),
   info: (message) => Toast.show(message, 'info'),
 };
 
+// Validation
+const Validator = {
+  email: (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+  
+  password: (password) => {
+    return password.length >= 8 && 
+           /[A-Z]/.test(password) && 
+           /[0-9]/.test(password) &&
+           /[!@#$%^&*]/.test(password);
+  },
+  
+  roomCode: (code) => /^[A-Z0-9]{6}$/.test(code),
+  
+  username: (username) => username.length >= 3 && username.length <= 50,
+  
+  required: (value) => value?.toString().trim().length > 0,
+};
+
 // API Helper
 const API = {
-  supabase: () => window.SUPABASE?.client?.(),
+  supabase: () => window.SUPABASE.client(),
   
   getCurrentUser: async () => {
-    const supabase = API.supabase();
-    if (!supabase) return null;
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) throw error;
+      const { data: { user } } = await API.supabase().auth.getUser();
       return user;
     } catch (error) {
       console.error('Get user error:', error);
@@ -66,84 +83,114 @@ const API = {
   },
   
   getUserProfile: async (userId) => {
-    const supabase = API.supabase();
-    if (!supabase || !userId) return null;
-    
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        const { data, error } = await supabase
-          .from('users_info')
-          .select('*')
-          .eq('id', userId)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-        return data;
-      } catch (error) {
-        console.error('Get profile error:', error);
-        retries--;
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
+    try {
+      const { data, error } = await API.supabase()
+        .from('users_info')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Get profile error:', error);
+      return null;
     }
-    return null;
   },
+  
+  logout: async () => {
+    try {
+      await API.supabase().auth.signOut();
+      window.location.href = '/index.html';
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  },
+};
+
+// Storage
+const Storage = {
+  set: (key, value) => {
+    try {
+      sessionStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error('Storage set error:', error);
+    }
+  },
+  
+  get: (key) => {
+    try {
+      const value = sessionStorage.getItem(key);
+      return value ? JSON.parse(value) : null;
+    } catch (error) {
+      console.error('Storage get error:', error);
+      return null;
+    }
+  },
+  
+  remove: (key) => sessionStorage.removeItem(key),
+  
+  clear: () => sessionStorage.clear(),
+};
+
+// Password Strength Indicator
+const PasswordStrength = {
+  calculate: (password) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[!@#$%^&*]/.test(password)) strength++;
+    
+    return {
+      score: strength,
+      level: strength <= 2 ? 'Weak' : strength <= 4 ? 'Medium' : 'Strong',
+      color: strength <= 2 ? '#ef4444' : strength <= 4 ? '#f59e0b' : '#22c55e'
+    };
+  },
+  
+  update: (inputId, displayId) => {
+    const input = DOM.id(inputId);
+    const display = DOM.id(displayId);
+    
+    if (input && display) {
+      const strength = PasswordStrength.calculate(input.value);
+      DOM.setText(display, strength.level);
+      display.style.color = strength.color;
+    }
+  }
 };
 
 // Time Helpers
 const TimeHelper = {
-  formatDate: (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-GB', {
-        year: 'numeric', month: '2-digit', day: '2-digit'
-      });
-    } catch (e) { return 'Invalid Date'; }
+  formatDate: (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   },
-  formatDateTime: (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleString('en-GB');
-    } catch(e) { return 'Invalid Date'; }
+  
+  formatTime: (date) => {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   },
-  isOverdue: (dueDate) => dueDate && new Date(dueDate) < new Date().setHours(0,0,0,0),
+  
+  formatDateTime: (date) => {
+    return `${TimeHelper.formatDate(date)} ${TimeHelper.formatTime(date)}`;
+  },
+  
+  isOverdue: (dueDate) => new Date(dueDate) < new Date(),
+  
   daysUntil: (dueDate) => {
-    const diff = new Date(dueDate) - new Date();
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diff = due - now;
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  }
-};
-
-// Password Strength Calculator
-const PasswordStrength = {
-  calculate: (password) => {
-    let strength = 0;
-    if (!password) return { level: 'Required', color: '#ef4444' };
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
-    
-    const levels = [
-      { level: 'Very Weak', color: '#ef4444' },
-      { level: 'Weak', color: '#f97316' },
-      { level: 'Medium', color: '#f59e0b' },
-      { level: 'Strong', color: '#84cc16' },
-      { level: 'Very Strong', color: '#22c55e'}
-    ];
-    return levels[strength];
-  },
-  updateIndicator: (inputId, displayId) => {
-    const input = DOM.id(inputId);
-    const display = DOM.id(displayId);
-    if (input && display) {
-      const strength = PasswordStrength.calculate(input.value);
-      display.textContent = strength.level;
-      display.style.color = strength.color;
-    }
   }
 };
 
@@ -158,48 +205,12 @@ const debounce = (func, delay) => {
 
 // Copy to Clipboard
 const copyToClipboard = async (text) => {
-  if (!navigator.clipboard) {
-    Toast.error('Clipboard API not available.');
-    return;
-  }
   try {
     await navigator.clipboard.writeText(text);
     Toast.success('Copied to clipboard!');
   } catch (error) {
-    console.error('Copy error:', error);
-    Toast.error('Failed to copy text.');
+    Toast.error('Failed to copy');
   }
 };
 
-console.log('✅ Utilities loaded');
-
-// Add CSS for toast animation
-(function addToastStyles() {
-  if (document.getElementById('toast-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'toast-styles';
-  style.innerHTML = `
-    .toast {
-      position: fixed; bottom: 20px; right: 20px; padding: 1rem 1.5rem;
-      border-radius: 8px; color: var(--text-primary); font-weight: 600;
-      z-index: 2000; border-left: 4px solid var(--primary-color);
-      background: var(--bg-light); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      animation: toastSlideIn 0.3s ease-out;
-      display: flex; align-items: center; gap: 0.75rem;
-    }
-    .toast i { font-size: 1.25rem; }
-    .toast.success { border-left-color: var(--success-color); }
-    .toast.success i { color: var(--success-color); }
-    .toast.error { border-left-color: var(--danger-color); }
-    .toast.error i { color: var(--danger-color); }
-    .toast.warning { border-left-color: var(--warning-color); }
-    .toast.warning i { color: var(--warning-color); }
-    .toast.info { border-left-color: var(--info-color); }
-    .toast.info i { color: var(--info-color); }
-    @keyframes toastSlideIn { 
-      from { transform: translateX(100%); opacity: 0; } 
-      to { transform: translateX(0); opacity: 1; } 
-    }
-  `;
-  document.head.appendChild(style);
-})();
+console.log('? Utilities loaded');

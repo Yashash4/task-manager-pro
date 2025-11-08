@@ -5,97 +5,125 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Tasks - Task Manager Pro</title>
     <link rel="stylesheet" href="../assets/css/main.css">
-    <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
-    <link rel="stylesheet" href="../assets/css/components/task-cards.css">
-    <link rel="stylesheet" href="../assets/css/components/tables-badges.css">
-    <link rel="stylesheet" href="../assets/css/components/modals-notifications.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <header class="topbar">
-        <div class="brand">
-            <span class="dot"></span> Task Manager Pro
-        </div>
-        <nav class="nav">
-            <a href="dashboard.html">
-                <i class="fas fa-chart-line"></i> Dashboard
-            </a>
-            <a href="tasks.html" class="active">
-                <i class="fas fa-tasks"></i> My Tasks
-            </a>
-            <a href="notifications.html">
-                <i class="fas fa-bell"></i> Notifications
-            </a>
-            <a href="profile.html">
-                <i class="fas fa-user"></i> Profile
-            </a>
-            <a href="#" data-logout>
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
-        </nav>
-    </header>
-
-    <main class="wrap">
-        <div class="flex-between mb-3">
-            <div>
-                <h1 class="h1" style="margin: 0;">My Assigned Tasks</h1>
-                <p class="text-muted">Track and manage all your assigned tasks</p>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-dot"></span> Task Manager Pro
+            </div>
+            <div class="nav-links">
+                <span class="text-secondary" id="userName">User</span>
+                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
             </div>
         </div>
+    </nav>
 
-        <!-- Filters -->
-        <div class="card mb-3">
-            <div class="grid cols-2 gap-2">
-                <input 
-                    type="search" 
-                    id="taskSearch" 
-                    placeholder="🔍 Search tasks by title..." 
-                    class="input"
-                >
-                <select id="taskStatusFilter" class="select">
-                    <option value="">All Status</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                </select>
+    <div class="wrapper">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html" class="active">✅ My Tasks</a></li>
+                <li><a href="notifications.html">🔔 Notifications</a></li>
+                <li><a href="profile.html">👤 Profile</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="card">
+                <div class="card-header flex-between">
+                    <h1 class="card-title">My Tasks</h1>
+                    <select id="taskViewMode" onchange="changeViewMode()">
+                        <option value="list">📄 List View</option>
+                        <option value="kanban">📋 Kanban Board</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <div class="flex mb-2">
+                        <input type="text" placeholder="Search tasks..." id="taskSearch" class="flex-1" style="margin-right: 10px;">
+                        <select id="taskFilter" onchange="filterMyTasks()">
+                            <option value="">All Tasks</option>
+                            <option value="assigned">Assigned</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="submitted">Submitted</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+
+                    <div id="listView">
+                        <table class="table" id="tasksTable">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Status</th>
+                                    <th>Priority</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasksBody">
+                                <tr><td colspan="5" class="text-center">Loading tasks...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="kanbanView" class="hidden" style="display: flex; gap: 1rem; overflow-x: auto; padding: 1rem 0;">
+                        <div class="kanban-column" data-status="assigned">
+                            <div class="kanban-header">📥 Assigned</div>
+                            <div class="kanban-tasks" id="kanban-assigned"></div>
+                        </div>
+                        <div class="kanban-column" data-status="in_progress">
+                            <div class="kanban-header">🔄 In Progress</div>
+                            <div class="kanban-tasks" id="kanban-in_progress"></div>
+                        </div>
+                        <div class="kanban-column" data-status="submitted">
+                            <div class="kanban-header">📤 Submitted</div>
+                            <div class="kanban-tasks" id="kanban-submitted"></div>
+                        </div>
+                        <div class="kanban-column" data-status="approved">
+                            <div class="kanban-header">✅ Approved</div>
+                            <div class="kanban-tasks" id="kanban-approved"></div>
+                        </div>
+                        <div class="kanban-column" data-status="rejected">
+                            <div class="kanban-header">❌ Rejected</div>
+                            <div class="kanban-tasks" id="kanban-rejected"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </main>
+    </div>
 
-        <!-- Tasks Container -->
-        <div id="tasksContainer" class="task-list">
-            <div class="empty-state" style="padding: 4rem 2rem;">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading tasks...</p>
-            </div>
-        </div>
-    </main>
-
-    <!-- Task Detail Modal -->
-    <div id="taskDetailModal" class="modal-overlay" style="display: none;">
+    <div class="modal-overlay hidden" id="taskModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="taskDetailTitle">Task Details</h2>
-                <button class="btn-icon" onclick="closeTaskModal()">
-                    <i class="fas fa-times"></i>
-                </button>
+                <h2 id="taskModalTitle">Task Details</h2>
+                <button onclick="closeTaskModal()" class="btn btn-secondary btn-sm">X</button>
             </div>
-            <div class="modal-body" id="taskDetailContent">
-                <!-- Filled dynamically -->
+            <div class="modal-body" id="taskModalContent">
+                Loading...
             </div>
-            <div class="modal-footer" id="taskDetailActions">
-                <!-- Action buttons filled dynamically -->
+            <div class="modal-footer">
+                <button onclick="closeTaskModal()" class="btn btn-secondary">Close</button>
             </div>
         </div>
     </div>
+
+    <style>
+        .kanban-column { flex: 0 0 300px; background-color: var(--bg-light); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); }
+        .kanban-header { font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); }
+        .kanban-card { background-color: var(--bg-darker); border: 1px solid var(--border-color); padding: 1rem; margin-bottom: 0.75rem; border-radius: var(--radius-md); cursor: pointer; transition: var(--transition); }
+        .kanban-card:hover { border-color: var(--primary-color); box-shadow: 0 0 10px rgba(34, 211, 238, 0.1); }
+        .kanban-card-title { font-weight: 600; margin-bottom: 0.5rem; }
+        .kanban-card-priority { font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 0.5rem; }
+    </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="../assets/js/core/supabaseClient.js"></script>
     <script src="../assets/js/core/utils.js"></script>
     <script src="../assets/js/core/validation.js"></script>
     <script src="../assets/js/core/auth.js"></script>
-    <script src="../assets/js/core/notifications.js"></script>
     <script src="../assets/js/user/tasks.js"></script>
 </body>
 </html>

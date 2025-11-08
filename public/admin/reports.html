@@ -3,68 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - Task Manager</title>
+    <title>Reports - Task Manager Pro</title>
     <link rel="stylesheet" href="../assets/css/main.css">
-    <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
-    <link rel="stylesheet" href="../assets/css/components/tables-badges.css">
-    <link rel="stylesheet" href="../assets/css/components/task-cards.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <header class="topbar">
-        <div class="brand"><span class="dot"></span> Task Manager</div>
-        <nav class="nav">
-            <a href="dashboard.html">Dashboard</a>
-            <a href="users.html">Users</a>
-            <a href="tasks.html">Tasks</a>
-            <a href="rooms.html">Rooms</a>
-            <a href="reports.html" class="active">Reports</a>
-            <a href="#" id="logoutBtn" data-logout>Logout</a>
-        </nav>
-    </header>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-dot"></span> Task Manager Pro
+            </div>
+            <div class="nav-links">
+                <span class="text-secondary" id="orgName">Organization</span>
+                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+            </div>
+        </div>
+    </nav>
 
-    <main class="wrap">
-        <h1 class="h1">Reports & Analytics</h1>
+    <div class="wrapper">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ Tasks</a></li>
+                <li><a href="users.html">👥 Users</a></li>
+                <li><a href="rooms.html">🏢 Rooms</a></li>
+                <li><a href="reports.html" class="active">📈 Reports</a></li>
+                <li><a href="settings.html">⚙️ Settings</a></li>
+            </ul>
+        </aside>
 
-        <div class="grid cols-2">
+        <main class="main-content">
             <div class="card">
-                <h2>Completion Rate</h2>
-                <div id="completionRateContainer" style="text-align: center; padding: 2rem;">
-                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-color);">-</div>
-                    <div class="text-muted">Loading...</div>
+                <div class="card-header flex-between">
+                    <h1 class="card-title">Reports & Analytics</h1>
+                    <button class="btn btn-primary" onclick="exportReport()">Export CSV</button>
+                </div>
+                <div class="card-body">
+                    <div class="grid grid-2">
+                        <div>
+                            <h3>Report Period</h3>
+                            <div class="flex">
+                                <input type="date" id="startDate" style="flex: 1; margin-right: 10px;">
+                                <input type="date" id="endDate" style="flex: 1; margin-right: 10px;">
+                                <button class="btn btn-primary" onclick="generateReport()">Generate</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="card">
-                <h2>Task Status Distribution</h2>
-                <div id="statusDistContainer">Loading...</div>
-            </div>
-        </div>
+            <div class="grid grid-2 mt-3">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Task Completion Rate</h2>
+                    </div>
+                    <div id="completionRateChart" style="text-align: center; padding: 2rem;">
+                        <div style="font-size: 3rem; font-weight: 700; color: var(--primary-color);">0%</div>
+                        <p class="text-muted">Tasks completed</p>
+                    </div>
+                </div>
 
-        <div class="card" style="margin-top: 2rem;">
-            <h2>Team Performance</h2>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Member</th>
-                        <th>Assigned</th>
-                        <th>Completed</th>
-                        <th>In Progress</th>
-                        <th>Completion %</th>
-                    </tr>
-                </thead>
-                <tbody id="performanceBody">
-                    <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </main>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Task Status Distribution</h2>
+                    </div>
+                    <div id="statusDistribution">
+                        <ul style="list-style: none;">
+                            <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                                <span>Assigned</span>
+                                <strong id="statusAssigned">0</strong>
+                            </li>
+                            <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                                <span>In Progress</span>
+                                <strong id="statusInProgress">0</strong>
+                            </li>
+                            <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                                <span>Submitted</span>
+                                <strong id="statusSubmitted">0</strong>
+                            </li>
+                            <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                                <span>Approved</span>
+                                <strong id="statusApproved">0</strong>
+                            </li>
+                            <li style="padding: 0.5rem 0; display: flex; justify-content: space-between;">
+                                <span>Rejected</span>
+                                <strong id="statusRejected">0</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h2 class="card-title">Team Performance</h2>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Tasks Assigned</th>
+                                <th>Completed</th>
+                                <th>In Progress</th>
+                                <th>Completion %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="performanceBody">
+                            <tr><td colspan="5" class="text-center">Loading data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
     <script src="../assets/js/core/supabaseClient.js"></script>
     <script src="../assets/js/core/utils.js"></script>
     <script src="../assets/js/core/validation.js"></script>
     <script src="../assets/js/core/auth.js"></script>
-    <script src="../assets/js/admin/reports.js"></script>
+    <script>
+        (async function () {
+          const supabase = window.SUPABASE?.client?.();
+          let currentProfile = null;
+
+          async function init() {
+            const user = await API.getCurrentUser();
+            if (!user) {
+              window.location.href = '/auth/login.html';
+              return;
+            }
+
+            currentProfile = await API.getUserProfile(user.id);
+            if (!currentProfile || !currentProfile.role_flags?.includes('admin')) {
+              await supabase.auth.signOut();
+              window.location.href = '/auth/login.html';
+              return;
+            }
+
+            if (currentProfile.room_id) {
+              const { data: room } = await supabase
+                .from('rooms')
+                .select('name')
+                .eq('id', currentProfile.room_id)
+                .single();
+              
+              if (room) DOM.setText(DOM.id('orgName'), room.name);
+            }
+
+            // Set default dates
+            const today = new Date();
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+            
+            DOM.id('startDate').value = lastMonth.toISOString().split('T')[0];
+            DOM.id('endDate').value = today.toISOString().split('T')[0];
+
+            await generateReport();
+          }
+
+          window.generateReport = async () => {
+            try {
+              if (!currentProfile.room_id) return;
+
+              const { data: tasks } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('room_id', currentProfile.room_id);
+
+              if (!tasks) return;
+
+              // Calculate stats
+              const statusCounts = {
+                'assigned': 0,
+                'in_progress': 0,
+                'submitted': 0,
+                'approved': 0,
+                'rejected': 0
+              };
+
+              tasks.forEach(task => {
+                if (statusCounts.hasOwnProperty(task.status)) {
+                    statusCounts[task.status]++;
+                }
+              });
+
+              const totalTasks = tasks.length;
+              const completedTasks = statusCounts.approved;
+              const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+              // Update UI
+              DOM.id('statusAssigned').textContent = statusCounts.assigned;
+              DOM.id('statusInProgress').textContent = statusCounts.in_progress;
+              DOM.id('statusSubmitted').textContent = statusCounts.submitted;
+              DOM.id('statusApproved').textContent = statusCounts.approved;
+              DOM.id('statusRejected').textContent = statusCounts.rejected;
+
+              DOM.id('completionRateChart').innerHTML = `
+                <div style="font-size: 3rem; font-weight: 700; color: var(--primary-color);">${completionRate}%</div>
+                <p class="text-muted">${completedTasks} of ${totalTasks} tasks completed</p>
+              `;
+
+              await loadTeamPerformance(tasks);
+
+            } catch (error) {
+              console.error('Generate report error:', error);
+              Toast.error('Failed to generate report');
+            }
+          };
+
+          async function loadTeamPerformance(allTasks) {
+            try {
+              const { data: users } = await supabase
+                .from('users_info')
+                .select('id, username')
+                .eq('room_id', currentProfile.room_id)
+                .eq('approved', true)
+                .contains('role_flags', ['user']);
+
+              if (!users) return;
+
+              const tbody = DOM.id('performanceBody');
+              const html = users.map(user => {
+                const userTasks = allTasks.filter(t => t.assigned_to === user.id);
+                const completed = userTasks.filter(t => t.status === 'approved').length;
+                const inProgress = userTasks.filter(t => t.status === 'in_progress').length;
+                const completionRate = userTasks.length > 0 ? Math.round((completed / userTasks.length) * 100) : 0;
+
+                return `
+                  <tr>
+                    <td><strong>${user.username}</strong></td>
+                    <td>${userTasks.length}</td>
+                    <td>${completed}</td>
+                    <td>${inProgress}</td>
+                    <td>
+                      <span style="color: var(--primary-color); font-weight: 600;">${completionRate}%</span>
+                    </td>
+                  </tr>
+                `;
+              }).join('');
+
+              tbody.innerHTML = html;
+
+            } catch (error) {
+              console.error('Load performance error:', error);
+            }
+          }
+
+          window.exportReport = () => {
+            Toast.info('Export feature coming soon');
+          };
+
+          document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
 </body>
 </html>

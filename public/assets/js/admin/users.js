@@ -1,365 +1,195 @@
-// admin/users.js - Complete User Management
-document.addEventListener('DOMContentLoaded', async () => {
-    const API_URL = 'http://localhost:5000/api';
-    let token = localStorage.getItem('token');
-    let searchQuery = '';
-    let currentPage = 1;
-    let pageSize = 10;
-    
-    if (!token) {
-        window.location.href = '/login.html';
-        return;
-    }
+// ==========================================
+// ADMIN USERS MANAGEMENT
+// ==========================================
 
-    // Load users
-    await loadUsers();
-    
-    // Setup event listeners
-    setupEventListeners();
-    
-    function setupEventListeners() {
-        // Search
-        document.getElementById('searchUsers')?.addEventListener('input', (e) => {
-            searchQuery = e.target.value;
-            debounce(() => loadUsers(), 300)();
-        });
-        
-        // Create user button
-        document.getElementById('createUserBtn')?.addEventListener('click', openCreateUserModal);
-        
-        // User modal close
-        document.getElementById('closeUserModal')?.addEventListener('click', closeUserModal);
-        
-        // Save user
-        document.getElementById('saveUserBtn')?.addEventListener('click', saveUser);
-        
-        // Page size selector
-        document.getElementById('pageSize')?.addEventListener('change', (e) => {
-            pageSize = parseInt(e.target.value);
-            currentPage = 1;
-            loadUsers();
-        });
+let currentProfile = null;
+let currentUserToEdit = null; // Variable to store user ID for role change
+
+(async function () {
+  const supabase = window.SUPABASE?.client?.();
+  if (!supabase) return;
+
+  async function init() {
+    try {
+      const user = await API.getCurrentUser();
+      if (!user) {
+        window.location.href = '/auth/login.html';
+        return;
+      }
+      currentProfile = await API.getUserProfile(user.id);
+      if (!currentProfile || !currentProfile.role_flags?.includes('admin')) {
+        await supabase.auth.signOut();
+        window.location.href = '/auth/login.html';
+        return;
+      }
+      if (currentProfile.room_id) {
+        const { data: room } = await supabase.from('rooms').select('name').eq('id', currentProfile.room_id).single();
+        if (room) DOM.setText(DOM.id('orgName'), room.name);
+      }
+      await loadUsers();
+      DOM.on(DOM.id('userSearch'), 'input', debounce(filterUsers, 300));
+      DOM.on(DOM.id('userStatusFilter'), 'change', filterUsers);
+    } catch (error) {
+      console.error('Init error:', error);
+      Toast.error('Failed to initialize');
     }
-    
-    async function loadUsers() {
-        try {
-            let url = `${API_URL}/admin/users?page=${currentPage}&limit=${pageSize}`;
-            
-            if (searchQuery) {
-                url += `&search=${encodeURIComponent(searchQuery)}`;
-            }
-            
-            const res = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                renderUsers(data.users);
-                renderPagination(data.pagination);
-            }
-        } catch (error) {
-            console.error('Error loading users:', error);
-            showNotification('Failed to load users', 'error');
-        }
+  }
+
+  async function loadUsers() {
+    const tbody = DOM.id('usersBody');
+    try {
+      if (!currentProfile.room_id) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">Please create a room to see users.</td></tr>';
+        return;
+      }
+      const { data: users, error } = await supabase.from('users_info').select('id, username, email, role_flags, approved, joined_at').eq('room_id', currentProfile.room_id).order('joined_at', { ascending: false });
+      if (error) throw error;
+      window.allUsers = users || [];
+      renderUsers(window.allUsers);
+    } catch (error) {
+      console.error('Load users error:', error);
+      Toast.error('Failed to load users');
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">An error occurred while loading users.</td></tr>';
     }
-    
-    function renderUsers(users) {
-        const tbody = document.querySelector('#usersTable tbody');
-        if (!tbody) return;
-        
-        if (!users || users.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center">
-                        <div class="empty-state">
-                            <i class="fas fa-users"></i>
-                            <p>No users found</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-        
-        tbody.innerHTML = users.map(user => `
-            <tr data-user-id="${user.id}">
-                <td>
-                    <div class="user-info">
-                        <div class="user-avatar">${getInitials(user.name)}</div>
-                        <div>
-                            <div class="user-name">${escapeHtml(user.name)}</div>
-                            <div class="user-email">${escapeHtml(user.email)}</div>
-                        </div>
-                    </div>
-                </td>
-                <td><span class="badge badge-${getRoleBadge(user.role)}">${user.role}</span></td>
-                <td>${user.taskCount || 0}</td>
-                <td>${user.completedTasks || 0}</td>
-                <td>
-                    <span class="status-badge ${user.isActive ? 'status-active' : 'status-inactive'}">
-                        ${user.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                </td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="btn-icon" onclick="viewUser(${user.id})" title="View">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-icon" onclick="editUser(${user.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon" onclick="toggleUserStatus(${user.id}, ${!user.isActive})" 
-                                title="${user.isActive ? 'Deactivate' : 'Activate'}">
-                            <i class="fas fa-${user.isActive ? 'ban' : 'check'}"></i>
-                        </button>
-                        <button class="btn-icon btn-danger" onclick="deleteUser(${user.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+  }
+
+  function renderUsers(users) {
+    const tbody = DOM.id('usersBody');
+    if (!users || users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center">No users found</td></tr>';
+      return;
     }
-    
-    function renderPagination(pagination) {
-        const container = document.getElementById('pagination');
-        if (!container || !pagination) return;
-        
-        const { currentPage: page, totalPages, totalUsers } = pagination;
-        
-        let html = `<div class="pagination-info">Showing ${((page - 1) * pageSize) + 1} to ${Math.min(page * pageSize, totalUsers)} of ${totalUsers} users</div>`;
-        html += '<div class="pagination-buttons">';
-        
-        // Previous button
-        html += `<button class="btn btn-sm" onclick="changePage(${page - 1})" ${page === 1 ? 'disabled' : ''}>
-            <i class="fas fa-chevron-left"></i> Previous
-        </button>`;
-        
-        // Page numbers
-        for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
-            html += `<button class="btn btn-sm ${i === page ? 'btn-primary' : ''}" onclick="changePage(${i})">${i}</button>`;
-        }
-        
-        // Next button
-        html += `<button class="btn btn-sm" onclick="changePage(${page + 1})" ${page === totalPages ? 'disabled' : ''}>
-            Next <i class="fas fa-chevron-right"></i>
-        </button>`;
-        
-        html += '</div>';
-        container.innerHTML = html;
+    tbody.innerHTML = users.map(user => {
+      const status = user.approved ? 'approved' : 'pending';
+      const role = user.role_flags?.[0] || 'user';
+      return `
+        <tr>
+          <td><strong>${user.username}</strong></td>
+          <td>${user.email}</td>
+          <td><span class="badge badge-primary">${role}</span></td>
+          <td>${new Date(user.joined_at).toLocaleDateString()}</td>
+          <td><span class="badge ${status === 'approved' ? 'badge-success' : 'badge-warning'}">${status}</span></td>
+          <td><button class="btn btn-sm btn-secondary" onclick="viewUser('${user.id}')">Manage</button></td>
+        </tr>`;
+    }).join('');
+  }
+
+  function filterUsers() {
+    const search = DOM.id('userSearch')?.value.toLowerCase() || '';
+    const status = DOM.id('userStatusFilter')?.value || '';
+    const filtered = window.allUsers.filter(user => {
+      const matchesSearch = user.username.toLowerCase().includes(search) || user.email.toLowerCase().includes(search);
+      let matchesStatus = true;
+      if (status === 'pending') matchesStatus = !user.approved;
+      if (status === 'approved') matchesStatus = user.approved;
+      return matchesSearch && matchesStatus;
+    });
+    renderUsers(filtered);
+  }
+
+  window.viewUser = async (userId) => {
+    const user = window.allUsers.find(u => u.id === userId);
+    if (!user) return;
+    let actionButtons = '';
+    if (!user.approved) {
+      actionButtons = `
+        <div class="flex mt-3" style="gap: 0.5rem;">
+          <button class="btn btn-success btn-sm" onclick="approveUser('${user.id}')">Approve User</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectUser('${user.id}')">Reject User</button>
+        </div>`;
+    } else {
+      actionButtons = `
+        <div class="flex mt-3" style="gap: 0.5rem;">
+          <button class="btn btn-secondary btn-sm" onclick="openChangeRoleModal('${user.id}')">Change Role</button>
+          <button class="btn btn-danger btn-sm" onclick="suspendUser('${user.id}')">Suspend User</button>
+        </div>`;
     }
+    const content = `
+      <div class="form-group"><label>Username</label><input type="text" value="${user.username}" disabled></div>
+      <div class="form-group"><label>Email</label><input type="email" value="${user.email}" disabled></div>
+      <div class="form-group"><label>Role</label><input type="text" value="${user.role_flags?.[0] || 'user'}" disabled></div>
+      <div class="form-group"><label>Joined</label><input type="text" value="${new Date(user.joined_at).toLocaleString()}" disabled></div>
+      <div class="form-group"><label>Status</label><input type="text" value="${user.approved ? 'Approved' : 'Pending'}" disabled></div>
+      ${actionButtons}`;
+    DOM.setHTML(DOM.id('userModalContent'), content);
+    DOM.removeClass(DOM.id('userModal'), 'hidden');
+  };
+
+  window.closeUserModal = () => DOM.addClass(DOM.id('userModal'), 'hidden');
+
+  window.approveUser = async (userId) => {
+    if (!confirm('Approve this user?')) return;
+    try {
+      const { error } = await supabase.from('users_info').update({ approved: true }).eq('id', userId);
+      if (error) throw error;
+      Toast.success('User approved!');
+      closeUserModal();
+      await loadUsers();
+    } catch (error) { Toast.error('Failed to approve user'); }
+  };
+
+  window.rejectUser = async (userId) => {
+    if (!confirm('Reject and delete this user? This cannot be undone.')) return;
+    try {
+      const { error } = await supabase.from('users_info').delete().eq('id', userId);
+      if (error) throw error;
+      Toast.success('User rejected and removed!');
+      closeUserModal();
+      await loadUsers();
+    } catch (error) { Toast.error('Failed to reject user'); }
+  };
+
+  window.suspendUser = async (userId) => {
+    if (!confirm('Suspend this user? They will not be able to log in.')) return;
+    try {
+      const { error } = await supabase.from('users_info').update({ approved: false, is_active: false }).eq('id', userId);
+      if (error) throw error;
+      Toast.success('User suspended!');
+      closeUserModal();
+      await loadUsers();
+    } catch (error) { Toast.error('Failed to suspend user'); }
+  };
+
+  // ✅ NEW FUNCTIONS FOR ROLE CHANGE
+  window.openChangeRoleModal = (userId) => {
+    const user = window.allUsers.find(u => u.id === userId);
+    if (!user) { Toast.error('User not found'); return; }
+    currentUserToEdit = userId;
+    const currentRole = user.role_flags?.[0] || 'user';
+    DOM.setText(DOM.id('changeRoleUsername'), user.username);
+    DOM.id('newRoleSelect').value = currentRole;
+    closeUserModal(); // Close the details modal first
+    DOM.removeClass(DOM.id('changeRoleModal'), 'hidden');
+  };
+
+  window.closeChangeRoleModal = () => {
+    currentUserToEdit = null;
+    DOM.addClass(DOM.id('changeRoleModal'), 'hidden');
+  };
+
+  window.confirmRoleChange = async () => {
+    if (!currentUserToEdit) return;
+    const newRole = DOM.id('newRoleSelect').value;
+    if (!newRole) { Toast.error('Please select a role.'); return; }
     
-    window.changePage = function(page) {
-        currentPage = page;
-        loadUsers();
-    };
-    
-    window.viewUser = async function(userId) {
-        try {
-            const res = await fetch(`${API_URL}/admin/users/${userId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                showUserDetails(data.user);
-            }
-        } catch (error) {
-            console.error('Error loading user:', error);
-            showNotification('Failed to load user details', 'error');
-        }
-    };
-    
-    window.editUser = async function(userId) {
-        try {
-            const res = await fetch(`${API_URL}/admin/users/${userId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                openEditUserModal(data.user);
-            }
-        } catch (error) {
-            console.error('Error loading user:', error);
-            showNotification('Failed to load user', 'error');
-        }
-    };
-    
-    window.toggleUserStatus = async function(userId, isActive) {
-        try {
-            const res = await fetch(`${API_URL}/admin/users/${userId}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ isActive })
-            });
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                showNotification(`User ${isActive ? 'activated' : 'deactivated'} successfully`, 'success');
-                await loadUsers();
-            }
-        } catch (error) {
-            console.error('Error toggling user status:', error);
-            showNotification('Failed to update user status', 'error');
-        }
-    };
-    
-    window.deleteUser = async function(userId) {
-        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
-        
-        try {
-            const res = await fetch(`${API_URL}/admin/users/${userId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                showNotification('User deleted successfully', 'success');
-                await loadUsers();
-            }
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            showNotification('Failed to delete user', 'error');
-        }
-    };
-    
-    function openCreateUserModal() {
-        const modal = document.getElementById('userModal');
-        if (!modal) return;
-        
-        document.getElementById('modalTitle').textContent = 'Create New User';
-        document.getElementById('userForm').reset();
-        document.getElementById('userId').value = '';
-        document.getElementById('passwordGroup').style.display = 'block';
-        modal.style.display = 'block';
+    try {
+      const { error } = await supabase
+        .from('users_info')
+        .update({ role_flags: [newRole] }) // Update the role_flags array
+        .eq('id', currentUserToEdit);
+      
+      if (error) throw error;
+      
+      Toast.success('User role updated successfully!');
+      closeChangeRoleModal();
+      await loadUsers(); // Refresh the user list to show the new role
+    } catch (error) {
+      console.error('Role change error:', error);
+      Toast.error('Failed to update user role.');
     }
-    
-    function openEditUserModal(user) {
-        const modal = document.getElementById('userModal');
-        if (!modal) return;
-        
-        document.getElementById('modalTitle').textContent = 'Edit User';
-        document.getElementById('userId').value = user.id;
-        document.getElementById('userName').value = user.name;
-        document.getElementById('userEmail').value = user.email;
-        document.getElementById('userRole').value = user.role;
-        document.getElementById('passwordGroup').style.display = 'none';
-        
-        modal.style.display = 'block';
-    }
-    
-    function closeUserModal() {
-        const modal = document.getElementById('userModal');
-        if (modal) modal.style.display = 'none';
-    }
-    
-    async function saveUser() {
-        const userId = document.getElementById('userId').value;
-        const userData = {
-            name: document.getElementById('userName').value,
-            email: document.getElementById('userEmail').value,
-            role: document.getElementById('userRole').value
-        };
-        
-        if (!userId) {
-            userData.password = document.getElementById('userPassword').value;
-        }
-        
-        if (!userData.name || !userData.email) {
-            showNotification('Please fill all required fields', 'error');
-            return;
-        }
-        
-        if (!userId && !userData.password) {
-            showNotification('Password is required', 'error');
-            return;
-        }
-        
-        try {
-            const url = userId ? `${API_URL}/admin/users/${userId}` : `${API_URL}/admin/users`;
-            const method = userId ? 'PUT' : 'POST';
-            
-            const res = await fetch(url, {
-                method,
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(userData)
-            });
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                showNotification(`User ${userId ? 'updated' : 'created'} successfully`, 'success');
-                closeUserModal();
-                await loadUsers();
-            } else {
-                showNotification(data.message || 'Failed to save user', 'error');
-            }
-        } catch (error) {
-            console.error('Error saving user:', error);
-            showNotification('Failed to save user', 'error');
-        }
-    }
-    
-    function showUserDetails(user) {
-        // Implementation for showing user details modal
-        alert(`User Details:\nName: ${user.name}\nEmail: ${user.email}\nRole: ${user.role}\nTasks: ${user.taskCount || 0}`);
-    }
-    
-    function getInitials(name) {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    
-    function getRoleBadge(role) {
-        const badges = { admin: 'danger', user: 'primary' };
-        return badges[role] || 'secondary';
-    }
-    
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-    
-    function showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 10);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
-    }
-    
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-});
+  };
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+
+console.log('? Admin users loaded');
