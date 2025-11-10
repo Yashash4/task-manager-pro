@@ -1,5 +1,5 @@
 // ==========================================
-// AUTHENTICATION HANDLER - UPSERT FIXED VERSION
+// FIXED AUTH.JS - ROOM CODE OPTIONAL FOR USERS
 // ==========================================
 
 (function () {
@@ -95,23 +95,41 @@
       const email = getById('email')?.value?.trim?.() || '';
       const password = getById('password')?.value?.trim?.() || '';
 
-      if (!email || !password) return Toast.error('Please fill in all fields');
-      if (!Validator.email(email)) return Toast.error('Please enter a valid email');
+      if (!email || !password) {
+        Toast.error('Please fill in all fields');
+        return;
+      }
+
+      if (!Validator.email(email)) {
+        Toast.error('Please enter a valid email');
+        return;
+      }
 
       try {
-        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
         if (authErr) throw authErr;
 
         const user = authData?.user;
         if (!user) throw new Error('Login failed');
 
+        // Get user profile
         let profile = null;
         for (let i = 0; i < 5; i++) {
-          const { data, error } = await supabase.from('users_info').select('*').eq('id', user.id).maybeSingle();
+          const { data, error } = await supabase
+            .from('users_info')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
           if (!error && data) {
             profile = data;
             break;
           }
+
           if (i < 4) await new Promise(r => setTimeout(r, 500));
         }
 
@@ -121,11 +139,12 @@
         }
 
         Toast.success('Login successful!');
+
         setTimeout(() => {
           if (profile.status === 'pending') {
             window.location.href = '/user/waiting-approval.html';
           } else if (profile.status === 'approved') {
-            if (profile.role_flags?.includes('admin')) {
+            if (profile.role === 'admin') {
               window.location.href = '/admin/dashboard.html';
             } else {
               window.location.href = '/user/dashboard.html';
@@ -136,13 +155,16 @@
             window.location.href = '/auth/login.html';
           }
         }, 500);
+
       } catch (error) {
+        console.error('Login error:', error);
         Toast.error(error?.message || 'Login failed');
       }
     });
   }
 
-  // ========== SIGNUP HANDLER (FIXED: INSERT ONLY) ==========
+  // ========== SIGNUP HANDLER - FIXED ==========
+  // Room code is now OPTIONAL for users
   const signupForm = getById('signupForm');
   if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
@@ -155,9 +177,20 @@
       const roomCode = getById('roomCode')?.value?.trim?.()?.toUpperCase?.() || '';
       const terms = getById('terms')?.checked;
 
-      if (!username || !email || !password || !role) return Toast.error('Please fill in all required fields');
-      if (!terms) return Toast.error('Please agree to Terms & Conditions');
+      console.log('📝 Signup attempt:', { username, email, role });
 
+      // Basic validation
+      if (!username || !email || !password || !role) {
+        Toast.error('Please fill in all required fields');
+        return;
+      }
+
+      if (!terms) {
+        Toast.error('Please agree to Terms & Conditions');
+        return;
+      }
+
+      // Validate fields
       const errors = FormValidator.validateForm(
         { email, password, username },
         {
@@ -169,73 +202,129 @@
 
       if (errors) {
         FormValidator.showErrors(errors, 'signupForm');
-        return Toast.error('Please fix the errors in the form');
-      }
-
-      if (role === 'user' && (!roomCode || roomCode.length !== 6)) {
-        Toast.error('Please enter a valid 6-character room code');
-        return getById('roomCode')?.focus();
+        Toast.error('Please fix the errors in the form');
+        return;
       }
 
       try {
+        console.log('✅ Validation passed, creating auth user...');
+
+        // Step 1: Create auth user
         const { data: authData, error: authErr } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { username, role } },
+          options: {
+            data: {
+              username: username,
+              role: role
+            }
+          }
         });
-        if (authErr) throw authErr;
+
+        if (authErr) {
+          console.error('❌ Auth signup error:', authErr);
+          throw authErr;
+        }
 
         const user = authData?.user;
         if (!user) throw new Error('No user returned from signup');
 
+        console.log('✅ Auth user created:', user.id);
+
+        // Step 2: Lookup room ONLY if user provided a code
         let roomId = null;
-        if (role === 'user') {
-          const { data: room, error: roomErr } = await supabase.from('rooms').select('id, name').eq('current_code', roomCode).maybeSingle();
-          if (roomErr || !room) throw new Error('Invalid room code. Please check and try again.');
+        if (role === 'user' && roomCode) {
+          console.log('🔍 Looking up room with code:', roomCode);
+
+          const { data: room, error: roomErr } = await supabase
+            .from('rooms')
+            .select('id, name')
+            .eq('current_code', roomCode)
+            .maybeSingle();
+
+          if (roomErr || !room) {
+            console.error('❌ Room lookup error:', roomErr);
+            throw new Error('Invalid room code. Please check and try again.');
+          }
+
           roomId = room.id;
+          console.log('✅ Found room:', room.name);
+        } else if (role === 'user' && !roomCode) {
+          // User didn't provide room code - that's OK!
+          console.log('ℹ️  User signup without room code (can join later)');
+          roomId = null;
         }
 
+        // Step 3: Determine initial status
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
-        const initialApproved = role === 'admin' ? true : false;
 
-        // ✅ FIXED: Using INSERT instead of UPSERT
-        // This respects RLS policies correctly
+        console.log('💾 INSERT user profile with status:', initialStatus);
+
+        // ============================================
+        // INSERT: Allow user to create their profile
+        // ============================================
+        const payload = {
+          id: user.id,
+          username: username,
+          email: email,
+          room_id: roomId,  // Can be NULL
+          role: role,
+          status: initialStatus,
+          joined_at: new Date().toISOString()
+        };
+
         const { data: profileData, error: insertErr } = await supabase
           .from('users_info')
-          .insert([
-            {
-              id: user.id,
-              username,
-              email,
-              room_id: roomId,
-              role,
-              role_flags: [role],
-              status: initialStatus,
-              approved: initialApproved,
-              joined_at: new Date().toISOString(),
-            }
-          ])
+          .insert([payload])
           .select()
           .single();
 
         if (insertErr) {
-          console.error('Insert error:', insertErr);
-          if (insertErr.code === '23505') throw new Error('Username or email already in use.');
+          console.error('❌ Profile insert error:', insertErr);
+          
+          // If insert failed, try to delete the auth user
+          try {
+            await supabase.auth.admin.deleteUser(user.id);
+          } catch (deleteErr) {
+            console.warn('Could not delete auth user:', deleteErr);
+          }
+          
+          if (insertErr.code === '23505') {
+            throw new Error('Username or email already in use.');
+          }
           throw insertErr;
         }
 
+        console.log('✅ Profile inserted successfully');
+
         Toast.success('Account created successfully! Logging in...');
+
         setTimeout(() => {
-          window.location.href = role === 'admin'
-            ? '/admin/dashboard.html'
-            : '/user/waiting-approval.html';
+          if (role === 'admin') {
+            console.log('➡️ Redirecting admin to dashboard');
+            window.location.href = '/admin/dashboard.html';
+          } else {
+            console.log('➡️ Redirecting user to waiting page');
+            window.location.href = '/user/waiting-approval.html';
+          }
         }, 800);
+
       } catch (error) {
-        let msg = error?.message || 'Signup failed. Please try again.';
-        if (msg.includes('User already registered')) msg = 'User already registered. Please login instead.';
-        else if (msg.includes('Invalid room')) msg = 'Invalid room code.';
-        else if (msg.includes('policy')) msg = 'Permission denied. Please contact support.';
-        Toast.error(msg);
+        console.error('❌ Signup error:', error);
+
+        let errorMessage = error?.message || 'Signup failed. Please try again.';
+
+        if (error?.message?.includes('User already registered')) {
+          errorMessage = 'User already registered. Please login instead.';
+        } else if (error?.message?.includes('Invalid room')) {
+          errorMessage = 'Invalid room code. Please check and try again.';
+        } else if (error?.message?.includes('policy')) {
+          errorMessage = 'Permission denied. Please check your input and try again.';
+        } else if (error?.message?.includes('duplicate')) {
+          errorMessage = 'Username or email already exists.';
+        }
+
+        Toast.error(errorMessage);
       }
     });
   }
@@ -245,13 +334,21 @@
   if (forgotForm) {
     forgotForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+
       const email = getById('email')?.value?.trim?.() || '';
-      if (!email || !Validator.email(email)) return Toast.error('Please enter a valid email');
+
+      if (!email || !Validator.email(email)) {
+        Toast.error('Please enter a valid email');
+        return;
+      }
+
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/auth/reset-password.html',
+          redirectTo: window.location.origin + '/auth/reset-password.html'
         });
+
         if (error) throw error;
+
         Toast.success('Reset link sent! Check your email');
         forgotForm.reset();
       } catch (error) {
@@ -260,6 +357,7 @@
     });
   }
 
+  // Logout buttons
   document.querySelectorAll('[data-logout]').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -268,5 +366,5 @@
     });
   });
 
-  console.log('✅ Auth handler loaded (INSERT profile enabled)');
+  console.log('✅ Auth handler loaded - Room code OPTIONAL for users');
 })();
