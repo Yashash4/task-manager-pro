@@ -1,6 +1,7 @@
 // ==========================================
 // AUTHENTICATION HANDLER - COMPLETE WORKING VERSION
 // Fixed: 500 errors, RLS issues, retry logic
+// Uses SQL TRIGGER for profile creation
 // ==========================================
 
 (function () {
@@ -143,6 +144,8 @@
 
         if (!profile) {
           await supabase.auth.signOut();
+          // This is the error you were seeing in the console
+          console.error('Login error: Profile not found in users_info for auth user ' + user.id);
           throw new Error('Profile not found');
         }
 
@@ -152,7 +155,6 @@
           if (profile.status === 'pending') {
             window.location.href = '/user/waiting-approval.html';
           } else if (profile.status === 'approved') {
-            // **FIX**: Check role_flags, not role
             if (profile.role_flags?.includes('admin')) {
               window.location.href = '/admin/dashboard.html';
             } else {
@@ -185,7 +187,7 @@
       const roomCode = getById('roomCode')?.value?.trim?.()?.toUpperCase?.() || '';
       const terms = getById('terms')?.checked;
 
-      console.log('📝 Signup attempt:', { username, email, role });
+      console.log('📝 Signup attempt:', { username, email, role, roomCode });
 
       // Basic validation
       if (!username || !email || !password || !role) {
@@ -227,13 +229,15 @@
         console.log('✅ Validation passed, creating auth user...');
 
         // Step 1: Create auth user
+        // This passes all data to the SQL trigger
         const { data: authData, error: authErr } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               username: username,
-              role: role // This saves to raw_user_meta_data
+              role: role,
+              roomCode: roomCode // <-- FIX: Pass the roomCode
             }
           }
         });
@@ -247,12 +251,14 @@
         if (!user) throw new Error('No user returned from signup');
 
         console.log('✅ Auth user created:', user.id);
+        console.log('⏳ Profile will be created by SQL trigger after email confirmation.');
+        
+        // Step 2: Determine initial status
+        const initialStatus = role === 'admin' ? 'approved' : 'pending';
 
-        // Step 2: Get room ID if user
-        let roomId = null;
+        // Step 3: Handle room logic (for user role)
         if (role === 'user') {
-          console.log('🔍 Looking up room with code:', roomCode);
-          
+          console.log('🔍 Validating room code...');
           const { data: room, error: roomErr } = await supabase
             .from('rooms')
             .select('id, name')
@@ -263,96 +269,40 @@
             console.error('❌ Room lookup error:', roomErr);
             throw new Error('Invalid room code. Please check and try again.');
           }
-
-          roomId = room.id;
           console.log('✅ Found room:', room.name);
         }
 
-        // Step 3: Determine initial status
-        const initialStatus = role === 'admin' ? 'approved' : 'pending';
-        const initialApproved = role === 'admin' ? true : false;
+        // STEP 4 (Profile creation) IS NOW REMOVED
+        // The SQL trigger "handle_new_user" will do this
+        // automatically when the user confirms their email.
 
-        console.log('💾 Creating user profile with status:', initialStatus);
-
-        // Step 4: Create user profile with BETTER ERROR HANDLING
-        let profileCreated = false;
-        let lastError = null;
-
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            console.log(`⏳ Profile creation attempt ${attempt}/3...`);
-
-            const { data: profile, error: insertErr } = await supabase
-              .from('users_info')
-              .insert([{
-                id: user.id,
-                username: username,
-                email: email,
-                room_id: roomId,
-                role: role,
-                role_flags: [role], // <-- FIX: Set role_flags to match the selected role
-                status: initialStatus,
-                approved: initialApproved,
-                joined_at: new Date().toISOString()
-              }])
-              // .select(); // <-- FIX: Removed .select() to avoid 500 error from recursive RLS policies
-              // Without .select(), 'profile' will be null, but 'insertErr' will be null on success.
-
-            if (insertErr) {
-              console.error(`❌ Attempt ${attempt} failed:`, insertErr);
-              lastError = insertErr;
-              
-              if (attempt < 3) {
-                await new Promise(r => setTimeout(r, 1000));
-              }
-            } else {
-              console.log('✅ Profile created successfully (no .select())');
-              profileCreated = true;
-              break;
-            }
-
-          } catch (err) {
-            console.error(`❌ Attempt ${attempt} exception:`, err);
-            lastError = err;
-            
-            if (attempt < 3) {
-              await new Promise(r => setTimeout(r, 1000));
-            }
-          }
+        // If email confirmation is ON, this message is shown
+        // If it's OFF, the user will be logged in and redirected
+        if (user.identities && user.identities.length === 0) {
+           Toast.success('Account created! Logging you in...');
+        } else {
+           Toast.success('Account created! Please check your email to confirm.');
         }
 
-        if (!profileCreated) {
-          console.error('❌ All retry attempts failed');
-          
-          // If all retries failed, show specific error
-          if (lastError?.code === '500' || lastError?.message?.includes('500')) {
-            throw new Error('Server error. Please contact support. Error: Database connection failed.');
-          } else if (lastError?.message?.includes('violates')) {
-            throw new Error('Database policy error. Please contact support.');
-          } else {
-            throw lastError || new Error('Failed to create user profile after 3 attempts');
-          }
-        }
-
-        Toast.success('Account created successfully!');
-
+        // Redirect based on role
         setTimeout(() => {
           if (role === 'admin') {
-            console.log('➡️ Redirecting admin to dashboard');
+            // Admin is approved by default, go to dashboard
+            // (Login will work because trigger runs instantly if email confirmation is off)
             window.location.href = '/admin/dashboard.html';
           } else {
-            console.log('➡️ Redirecting user to waiting page');
+            // User is pending, go to waiting page
             window.location.href = '/user/waiting-approval.html';
           }
-        }, 1000);
+        }, 1500);
 
       } catch (error) {
         console.error('❌ Signup error:', error);
         
         let errorMessage = error?.message || 'Signup failed. Please try again.';
         
-        if (error?.message?.includes('duplicate')) {
-          errorMessage = 'Email already registered. Please login instead.';
+        if (error?.message?.includes('User already registered')) {
+          errorMessage = 'User already registered. Please login instead.';
         } else if (error?.message?.includes('Invalid room')) {
           errorMessage = 'Invalid room code. Please check and try again.';
         } else if (error?.message?.includes('500') || error?.code === '500') {
@@ -407,5 +357,5 @@
     });
   });
 
-  console.log('✅ Auth handler loaded - WORKING VERSION');
+  console.log('✅ Auth handler loaded - TRIGGER VERSION');
 })();
