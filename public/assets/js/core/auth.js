@@ -1,7 +1,7 @@
 // ==========================================
 // AUTHENTICATION HANDLER - COMPLETE WORKING VERSION
 // Fixed: 500 errors, RLS issues, retry logic
-// Uses SQL TRIGGER for profile creation
+// This version works with "Email Confirmation" OFF
 // ==========================================
 
 (function () {
@@ -144,7 +144,6 @@
 
         if (!profile) {
           await supabase.auth.signOut();
-          // This is the error you were seeing in the console
           console.error('Login error: Profile not found in users_info for auth user ' + user.id);
           throw new Error('Profile not found');
         }
@@ -187,7 +186,7 @@
       const roomCode = getById('roomCode')?.value?.trim?.()?.toUpperCase?.() || '';
       const terms = getById('terms')?.checked;
 
-      console.log('📝 Signup attempt:', { username, email, role, roomCode });
+      console.log('📝 Signup attempt:', { username, email, role });
 
       // Basic validation
       if (!username || !email || !password || !role) {
@@ -229,15 +228,13 @@
         console.log('✅ Validation passed, creating auth user...');
 
         // Step 1: Create auth user
-        // This passes all data to the SQL trigger
         const { data: authData, error: authErr } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               username: username,
-              role: role,
-              roomCode: roomCode // <-- FIX: Pass the roomCode
+              role: role
             }
           }
         });
@@ -251,14 +248,12 @@
         if (!user) throw new Error('No user returned from signup');
 
         console.log('✅ Auth user created:', user.id);
-        console.log('⏳ Profile will be created by SQL trigger after email confirmation.');
-        
-        // Step 2: Determine initial status
-        const initialStatus = role === 'admin' ? 'approved' : 'pending';
 
-        // Step 3: Handle room logic (for user role)
+        // Step 2: Get room ID if user
+        let roomId = null;
         if (role === 'user') {
-          console.log('🔍 Validating room code...');
+          console.log('🔍 Looking up room with code:', roomCode);
+          
           const { data: room, error: roomErr } = await supabase
             .from('rooms')
             .select('id, name')
@@ -269,32 +264,79 @@
             console.error('❌ Room lookup error:', roomErr);
             throw new Error('Invalid room code. Please check and try again.');
           }
+
+          roomId = room.id;
           console.log('✅ Found room:', room.name);
         }
 
-        // STEP 4 (Profile creation) IS NOW REMOVED
-        // The SQL trigger "handle_new_user" will do this
-        // automatically when the user confirms their email.
+        // Step 3: Determine initial status
+        const initialStatus = role === 'admin' ? 'approved' : 'pending';
+        const initialApproved = role === 'admin' ? true : false;
 
-        // If email confirmation is ON, this message is shown
-        // If it's OFF, the user will be logged in and redirected
-        if (user.identities && user.identities.length === 0) {
-           Toast.success('Account created! Logging you in...');
-        } else {
-           Toast.success('Account created! Please check your email to confirm.');
+        console.log('💾 Creating user profile with status:', initialStatus);
+
+        // Step 4: Create user profile (This works now because Email Confirmation is OFF)
+        let profileCreated = false;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            console.log(`⏳ Profile creation attempt ${attempt}/3...`);
+
+            const { data: profile, error: insertErr } = await supabase
+              .from('users_info')
+              .insert([{
+                id: user.id,
+                username: username,
+                email: email,
+                room_id: roomId,
+                role: role,
+                role_flags: [role], // <-- This is the important fix
+                status: initialStatus,
+                approved: initialApproved,
+                joined_at: new Date().toISOString()
+              }]);
+              // We remove .select() to avoid RLS issues
+
+            if (insertErr) {
+              console.error(`❌ Attempt ${attempt} failed:`, insertErr);
+              lastError = insertErr;
+              
+              if (attempt < 3) {
+                await new Promise(r => setTimeout(r, 1000));
+              }
+            } else {
+              console.log('✅ Profile created successfully');
+              profileCreated = true;
+              break;
+            }
+
+          } catch (err) {
+            console.error(`❌ Attempt ${attempt} exception:`, err);
+            lastError = err;
+            
+            if (attempt < 3) {
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          }
         }
 
-        // Redirect based on role
+        if (!profileCreated) {
+          console.error('❌ All retry attempts failed');
+          throw lastError || new Error('Failed to create user profile after 3 attempts');
+        }
+
+        Toast.success('Account created successfully! Logging in...');
+
         setTimeout(() => {
           if (role === 'admin') {
-            // Admin is approved by default, go to dashboard
-            // (Login will work because trigger runs instantly if email confirmation is off)
+            console.log('➡️ Redirecting admin to dashboard');
             window.location.href = '/admin/dashboard.html';
           } else {
-            // User is pending, go to waiting page
+            console.log('➡️ Redirecting user to waiting page');
             window.location.href = '/user/waiting-approval.html';
           }
-        }, 1500);
+        }, 1000);
 
       } catch (error) {
         console.error('❌ Signup error:', error);
@@ -357,5 +399,5 @@
     });
   });
 
-  console.log('✅ Auth handler loaded - TRIGGER VERSION');
+  console.log('✅ Auth handler loaded - (Email Confirmation OFF Version)');
 })();
