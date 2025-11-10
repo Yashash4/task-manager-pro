@@ -1,13 +1,10 @@
 // ==========================================
-// AUTHENTICATION HANDLER - COMPLETE WORKING VERSION
-// Fixed: 500 errors, RLS issues, retry logic
-// This version works with "Email Confirmation" OFF
+// AUTHENTICATION HANDLER - UPSERT FIXED VERSION
 // ==========================================
 
 (function () {
   'use strict';
 
-  // Safe fallbacks
   const Validator = window.Validator || {
     email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
   };
@@ -56,23 +53,17 @@
     validateForm: (data, validators) => {
       const errors = {};
       for (const key of Object.keys(validators)) {
-        try {
-          const validatorFn = validators[key];
-          const val = data[key];
-          const err = validatorFn(val);
-          if (err) errors[key] = err;
-        } catch (e) {
-          console.warn('Validator error:', e);
-        }
+        const validatorFn = validators[key];
+        const val = data[key];
+        const err = validatorFn(val);
+        if (err) errors[key] = err;
       }
       return Object.keys(errors).length ? errors : null;
     },
     showErrors: (errors, formId) => {
       const form = document.getElementById(formId);
       if (!form) return;
-      
       form.querySelectorAll('.form-error').forEach(el => el.remove());
-      
       for (const [name, message] of Object.entries(errors)) {
         const input = form.querySelector(`[name="${name}"], #${name}`);
         if (input) {
@@ -89,7 +80,7 @@
 
   const getById = (id) => document.getElementById(id);
   const supabase = window.SUPABASE?.client?.();
-  
+
   if (!supabase) {
     console.error('❌ Supabase not initialized');
     return;
@@ -104,52 +95,32 @@
       const email = getById('email')?.value?.trim?.() || '';
       const password = getById('password')?.value?.trim?.() || '';
 
-      if (!email || !password) {
-        Toast.error('Please fill in all fields');
-        return;
-      }
-
-      if (!Validator.email(email)) {
-        Toast.error('Please enter a valid email');
-        return;
-      }
+      if (!email || !password) return Toast.error('Please fill in all fields');
+      if (!Validator.email(email)) return Toast.error('Please enter a valid email');
 
       try {
-        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-
+        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
         if (authErr) throw authErr;
 
         const user = authData?.user;
         if (!user) throw new Error('Login failed');
 
-        // Get user profile
         let profile = null;
         for (let i = 0; i < 5; i++) {
-          const { data, error } = await supabase
-            .from('users_info')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-
+          const { data, error } = await supabase.from('users_info').select('*').eq('id', user.id).maybeSingle();
           if (!error && data) {
             profile = data;
             break;
           }
-          
           if (i < 4) await new Promise(r => setTimeout(r, 500));
         }
 
         if (!profile) {
           await supabase.auth.signOut();
-          console.error('Login error: Profile not found in users_info for auth user ' + user.id);
           throw new Error('Profile not found');
         }
 
         Toast.success('Login successful!');
-
         setTimeout(() => {
           if (profile.status === 'pending') {
             window.location.href = '/user/waiting-approval.html';
@@ -165,15 +136,13 @@
             window.location.href = '/auth/login.html';
           }
         }, 500);
-
       } catch (error) {
-        console.error('Login error:', error);
         Toast.error(error?.message || 'Login failed');
       }
     });
   }
 
-  // ========== SIGNUP HANDLER - COMPLETE WORKING VERSION ==========
+  // ========== SIGNUP HANDLER (UPSERT FIXED) ==========
   const signupForm = getById('signupForm');
   if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
@@ -186,20 +155,9 @@
       const roomCode = getById('roomCode')?.value?.trim?.()?.toUpperCase?.() || '';
       const terms = getById('terms')?.checked;
 
-      console.log('📝 Signup attempt:', { username, email, role });
+      if (!username || !email || !password || !role) return Toast.error('Please fill in all required fields');
+      if (!terms) return Toast.error('Please agree to Terms & Conditions');
 
-      // Basic validation
-      if (!username || !email || !password || !role) {
-        Toast.error('Please fill in all required fields');
-        return;
-      }
-
-      if (!terms) {
-        Toast.error('Please agree to Terms & Conditions');
-        return;
-      }
-
-      // Validate fields
       const errors = FormValidator.validateForm(
         { email, password, username },
         {
@@ -211,149 +169,72 @@
 
       if (errors) {
         FormValidator.showErrors(errors, 'signupForm');
-        Toast.error('Please fix the errors in the form');
-        return;
+        return Toast.error('Please fix the errors in the form');
       }
 
-      // Room code validation
-      if (role === 'user') {
-        if (!roomCode || roomCode.length !== 6) {
-          Toast.error('Please enter a valid 6-character room code');
-          getById('roomCode')?.focus();
-          return;
-        }
+      if (role === 'user' && (!roomCode || roomCode.length !== 6)) {
+        Toast.error('Please enter a valid 6-character room code');
+        return getById('roomCode')?.focus();
       }
 
       try {
-        console.log('✅ Validation passed, creating auth user...');
-
-        // Step 1: Create auth user
         const { data: authData, error: authErr } = await supabase.auth.signUp({
           email,
           password,
-          options: {
-            data: {
-              username: username,
-              role: role
-            }
-          }
+          options: { data: { username, role } },
         });
-
-        if (authErr) {
-          console.error('❌ Auth signup error:', authErr);
-          throw authErr;
-        }
+        if (authErr) throw authErr;
 
         const user = authData?.user;
         if (!user) throw new Error('No user returned from signup');
 
-        console.log('✅ Auth user created:', user.id);
-
-        // Step 2: Get room ID if user
         let roomId = null;
         if (role === 'user') {
-          console.log('🔍 Looking up room with code:', roomCode);
-          
-          const { data: room, error: roomErr } = await supabase
-            .from('rooms')
-            .select('id, name')
-            .eq('current_code', roomCode)
-            .maybeSingle();
-
-          if (roomErr || !room) {
-            console.error('❌ Room lookup error:', roomErr);
-            throw new Error('Invalid room code. Please check and try again.');
-          }
-
+          const { data: room, error: roomErr } = await supabase.from('rooms').select('id, name').eq('current_code', roomCode).maybeSingle();
+          if (roomErr || !room) throw new Error('Invalid room code. Please check and try again.');
           roomId = room.id;
-          console.log('✅ Found room:', room.name);
         }
 
-        // Step 3: Determine initial status
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
         const initialApproved = role === 'admin' ? true : false;
 
-        console.log('💾 Creating user profile with status:', initialStatus);
+        // ✅ UPSERT instead of INSERT
+        const { error: upsertErr } = await supabase
+          .from('users_info')
+          .upsert(
+            {
+              id: user.id,
+              username,
+              email,
+              room_id: roomId,
+              role,
+              role_flags: [role],
+              status: initialStatus,
+              approved: initialApproved,
+              joined_at: new Date().toISOString(),
+            },
+            { onConflict: 'id' }
+          )
+          .select()
+          .single();
 
-        // Step 4: Create user profile (This works now because Email Confirmation is OFF)
-        let profileCreated = false;
-        let lastError = null;
-
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            console.log(`⏳ Profile creation attempt ${attempt}/3...`);
-
-            const { data: profile, error: insertErr } = await supabase
-              .from('users_info')
-              .insert([{
-                id: user.id,
-                username: username,
-                email: email,
-                room_id: roomId,
-                role: role,
-                role_flags: [role], // <-- This is the important fix
-                status: initialStatus,
-                approved: initialApproved,
-                joined_at: new Date().toISOString()
-              }]);
-              // We remove .select() to avoid RLS issues
-
-            if (insertErr) {
-              console.error(`❌ Attempt ${attempt} failed:`, insertErr);
-              lastError = insertErr;
-              
-              if (attempt < 3) {
-                await new Promise(r => setTimeout(r, 1000));
-              }
-            } else {
-              console.log('✅ Profile created successfully');
-              profileCreated = true;
-              break;
-            }
-
-          } catch (err) {
-            console.error(`❌ Attempt ${attempt} exception:`, err);
-            lastError = err;
-            
-            if (attempt < 3) {
-              await new Promise(r => setTimeout(r, 1000));
-            }
-          }
-        }
-
-        if (!profileCreated) {
-          console.error('❌ All retry attempts failed');
-          throw lastError || new Error('Failed to create user profile after 3 attempts');
+        if (upsertErr) {
+          if (upsertErr.code === '23505') throw new Error('Username or email already in use.');
+          throw upsertErr;
         }
 
         Toast.success('Account created successfully! Logging in...');
-
         setTimeout(() => {
-          if (role === 'admin') {
-            console.log('➡️ Redirecting admin to dashboard');
-            window.location.href = '/admin/dashboard.html';
-          } else {
-            console.log('➡️ Redirecting user to waiting page');
-            window.location.href = '/user/waiting-approval.html';
-          }
-        }, 1000);
-
+          window.location.href = role === 'admin'
+            ? '/admin/dashboard.html'
+            : '/user/waiting-approval.html';
+        }, 800);
       } catch (error) {
-        console.error('❌ Signup error:', error);
-        
-        let errorMessage = error?.message || 'Signup failed. Please try again.';
-        
-        if (error?.message?.includes('User already registered')) {
-          errorMessage = 'User already registered. Please login instead.';
-        } else if (error?.message?.includes('Invalid room')) {
-          errorMessage = 'Invalid room code. Please check and try again.';
-        } else if (error?.message?.includes('500') || error?.code === '500') {
-          errorMessage = 'Server error. The database may be temporarily unavailable. Please try again in a few moments.';
-        } else if (error?.message?.includes('policy')) {
-          errorMessage = 'Permission denied. Please contact support.';
-        }
-        
-        Toast.error(errorMessage);
+        let msg = error?.message || 'Signup failed. Please try again.';
+        if (msg.includes('User already registered')) msg = 'User already registered. Please login instead.';
+        else if (msg.includes('Invalid room')) msg = 'Invalid room code.';
+        else if (msg.includes('policy')) msg = 'Permission denied. Please contact support.';
+        Toast.error(msg);
       }
     });
   }
@@ -363,21 +244,13 @@
   if (forgotForm) {
     forgotForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const email = getById('email')?.value?.trim?.() || '';
-
-      if (!email || !Validator.email(email)) {
-        Toast.error('Please enter a valid email');
-        return;
-      }
-
+      if (!email || !Validator.email(email)) return Toast.error('Please enter a valid email');
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/auth/reset-password.html'
+          redirectTo: window.location.origin + '/auth/reset-password.html',
         });
-
         if (error) throw error;
-
         Toast.success('Reset link sent! Check your email');
         forgotForm.reset();
       } catch (error) {
@@ -386,18 +259,13 @@
     });
   }
 
-  // Logout buttons
   document.querySelectorAll('[data-logout]').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.preventDefault();
-      try {
-        await supabase.auth.signOut();
-        window.location.href = '/index.html';
-      } catch (err) {
-        window.location.href = '/index.html';
-      }
+      await supabase.auth.signOut();
+      window.location.href = '/index.html';
     });
   });
 
-  console.log('✅ Auth handler loaded - (Email Confirmation OFF Version)');
+  console.log('✅ Auth handler loaded (UPSERT profile fix)');
 })();
