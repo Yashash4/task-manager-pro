@@ -1,6 +1,6 @@
 // ==========================================
-// AUTHENTICATION HANDLER (FIXED & COMPLETE)
-// Version: 2.0
+// AUTHENTICATION HANDLER (ERROR FIX v2.1)
+// Fixes: Form validation error at line 18
 // ==========================================
 
 (function () {
@@ -13,13 +13,44 @@
   };
 
   const Toast = window.Toast || {
-    success: (msg) => console.log('[Toast success]', msg),
+    success: (msg) => {
+      console.log('[Toast success]', msg);
+      showBrowserToast(msg, 'success');
+    },
     error: (msg) => {
       console.error('[Toast error]', msg);
-      try { alert(msg); } catch (e) { /* ignore */ }
+      showBrowserToast(msg, 'error');
     },
-    info: (msg) => console.log('[Toast info]', msg)
+    info: (msg) => {
+      console.log('[Toast info]', msg);
+      showBrowserToast(msg, 'info');
+    }
   };
+
+  // Simple browser toast implementation
+  function showBrowserToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 1rem 1.5rem;
+      background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#22c55e' : '#3b82f6'};
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 9999;
+      animation: slideIn 0.3s ease-out;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease-out';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
 
   const FormValidator = window.FormValidator || {
     validatePassword: (v) => {
@@ -54,23 +85,48 @@
       try {
         const form = document.getElementById(formId);
         if (!form) return;
-        form.querySelectorAll('.field-error').forEach((el) => el.classList.remove('field-error'));
+        
+        // Clear previous errors
+        form.querySelectorAll('.field-error, .form-error').forEach((el) => {
+          el.classList.remove('field-error');
+          if (el.classList.contains('form-error')) el.remove();
+        });
+        
+        // Show new errors
         for (const name of Object.keys(errors)) {
           const input = form.querySelector(`[name="${name}"], #${name}`);
-          if (input) input.classList.add('field-error');
+          if (input) {
+            input.classList.add('field-error');
+            input.style.borderColor = '#ef4444';
+            
+            // Add error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'form-error';
+            errorDiv.style.cssText = 'color: #ef4444; font-size: 0.85rem; margin-top: 0.25rem;';
+            errorDiv.textContent = errors[name];
+            input.parentElement.appendChild(errorDiv);
+          }
         }
       } catch (e) {
-        // ignore DOM issues
+        console.error('Error showing form errors:', e);
       }
     }
   };
 
   const getById = (id) => document.getElementById(id);
-  const safeReset = (form) => { try { form?.reset?.(); } catch (e) { /* ignore */ } };
+  const safeReset = (form) => { 
+    try { 
+      if (form && typeof form.reset === 'function') {
+        form.reset(); 
+      }
+    } catch (e) { 
+      console.warn('Form reset error:', e);
+    } 
+  };
 
   const supabase = window.SUPABASE?.client?.();
   if (!supabase) {
-    console.error('Supabase not initialized');
+    console.error('❌ Supabase not initialized');
     return;
   }
 
@@ -83,8 +139,10 @@
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const email = getById('email')?.value?.trim?.();
-      const password = getById('password')?.value?.trim?.();
+      const email = getById('email')?.value?.trim?.() || '';
+      const password = getById('password')?.value?.trim?.() || '';
+
+      console.log('🔐 Login attempt:', email);
 
       if (!email || !password) {
         Toast.error('Please fill in all fields');
@@ -103,10 +161,15 @@
           password
         });
 
-        if (authErr) throw authErr;
+        if (authErr) {
+          console.error('Auth error:', authErr);
+          throw authErr;
+        }
 
         const user = authData?.user;
-        if (!user) throw new Error('Login failed');
+        if (!user) throw new Error('Login failed - no user returned');
+
+        console.log('✅ Auth successful, fetching profile...');
 
         // Get user profile with retries
         let profile = null;
@@ -121,63 +184,70 @@
 
           if (!error && data) {
             profile = data;
+            console.log('✅ Profile loaded:', profile.username, '- Role:', profile.role, '- Status:', profile.status);
           } else {
             retries--;
+            console.log(`⏳ Profile not found, retrying... (${5 - retries}/5)`);
             if (retries > 0) await new Promise((resolve) => setTimeout(resolve, 800));
           }
         }
 
-        if (!profile) throw new Error('Profile not found. Please contact support.');
+        if (!profile) {
+          console.error('❌ Profile not found after retries');
+          throw new Error('Profile not found. Please contact support.');
+        }
 
         Toast.success('Login successful!');
 
         // Redirect based on role and status
         setTimeout(() => {
           if (profile.status === 'pending') {
-            // User waiting for approval
+            console.log('➡️ Redirecting to waiting approval page');
             window.location.href = '/user/waiting-approval.html';
           } else if (profile.status === 'rejected') {
-            // User was rejected
             alert('Your account registration was rejected. Please contact the admin.');
             supabase.auth.signOut();
             window.location.href = '/auth/login.html';
           } else if (profile.status === 'suspended') {
-            // User is suspended
             alert('Your account has been suspended. Please contact the admin.');
             supabase.auth.signOut();
             window.location.href = '/auth/login.html';
           } else if (profile.status === 'approved') {
-            // User is approved, redirect by role
-            if (profile.role === 'admin') {
+            if (profile.role === 'admin' || profile.role === 'approver') {
+              console.log('➡️ Redirecting to admin dashboard');
               window.location.href = '/admin/dashboard.html';
-            } else if (profile.role === 'approver') {
-              window.location.href = '/admin/dashboard.html'; // Approvers use admin dashboard
             } else {
+              console.log('➡️ Redirecting to user dashboard');
               window.location.href = '/user/dashboard.html';
             }
+          } else {
+            console.error('❌ Unknown status:', profile.status);
+            throw new Error('Unknown account status');
           }
         }, 1000);
 
       } catch (error) {
-        console.error('Login error:', error);
+        console.error('❌ Login error:', error);
         Toast.error(error?.message || 'Login failed. Please check your credentials.');
       }
     });
   }
 
-  // ========== SIGNUP HANDLER ==========
+  // ========== SIGNUP HANDLER (FIXED) ==========
   if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const username = getById('username')?.value?.trim?.();
-      const email = getById('email')?.value?.trim?.();
-      const password = getById('password')?.value?.trim?.();
-      const role = getById('role')?.value;
-      const roomCode = getById('roomCode')?.value?.trim?.();
+      const username = getById('username')?.value?.trim?.() || '';
+      const email = getById('email')?.value?.trim?.() || '';
+      const password = getById('password')?.value?.trim?.() || '';
+      const role = getById('role')?.value || '';
+      const roomCode = getById('roomCode')?.value?.trim?.() || '';
       const terms = getById('terms')?.checked;
 
-      // Validation
+      console.log('📝 Signup attempt:', { username, email, role, hasRoomCode: !!roomCode });
+
+      // Basic validation
       if (!username || !email || !password || !role) {
         Toast.error('Please fill in all required fields');
         return;
@@ -188,6 +258,7 @@
         return;
       }
 
+      // Validate fields
       const errors = FormValidator.validateForm(
         { email, password, username },
         {
@@ -198,15 +269,22 @@
       );
 
       if (errors) {
+        console.error('❌ Validation errors:', errors);
         FormValidator.showErrors(errors, 'signupForm');
         Toast.error('Please fix the errors in the form');
         return;
       }
 
-      if (role === 'user' && (!roomCode || roomCode.length !== 6)) {
-        Toast.error('Please enter a valid 6-character room code');
-        return;
+      // Room code validation (only for users, not admins)
+      if (role === 'user') {
+        if (!roomCode || roomCode.length !== 6) {
+          Toast.error('Please enter a valid 6-character room code');
+          getById('roomCode')?.focus();
+          return;
+        }
       }
+
+      console.log('✅ Validation passed, creating account...');
 
       try {
         // Create auth user
@@ -215,30 +293,49 @@
           password
         });
 
-        if (authErr) throw authErr;
+        if (authErr) {
+          console.error('❌ Auth signup error:', authErr);
+          throw authErr;
+        }
 
         const user = authData?.user;
-        if (!user) throw new Error('Signup failed. Please try again.');
+        if (!user) {
+          console.error('❌ No user returned from signup');
+          throw new Error('Signup failed. Please try again.');
+        }
 
-        // Get room ID if user
+        console.log('✅ Auth user created:', user.id);
+
+        // Get room ID if user (not admin)
         let roomId = null;
         if (role === 'user') {
+          console.log('🔍 Looking up room with code:', roomCode);
+          
           const { data: room, error: roomErr } = await supabase
             .from('rooms')
-            .select('id')
+            .select('id, name')
             .eq('current_code', roomCode.toUpperCase())
-            .single();
+            .maybeSingle();
           
           if (roomErr || !room) {
-            // Delete the auth user if room code is invalid
-            await supabase.auth.admin.deleteUser(user.id);
+            console.error('❌ Invalid room code:', roomCode);
+            // Try to delete the auth user
+            try {
+              await supabase.rpc('delete_user', { user_id: user.id });
+            } catch (deleteErr) {
+              console.warn('Could not delete auth user:', deleteErr);
+            }
             throw new Error('Invalid room code. Please check and try again.');
           }
+          
           roomId = room.id;
+          console.log('✅ Found room:', room.name, '(', room.id, ')');
         }
 
         // Determine initial status
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
+
+        console.log('💾 Creating user profile...');
 
         // Create user profile
         const profileData = {
@@ -256,25 +353,31 @@
           .insert([profileData]);
 
         if (insertErr) {
-          // Delete the auth user if profile creation fails
-          await supabase.auth.admin.deleteUser(user.id);
+          console.error('❌ Profile insert error:', insertErr);
+          // Try to delete the auth user
+          try {
+            await supabase.rpc('delete_user', { user_id: user.id });
+          } catch (deleteErr) {
+            console.warn('Could not delete auth user:', deleteErr);
+          }
           throw insertErr;
         }
 
+        console.log('✅ Profile created successfully');
         Toast.success('Account created successfully!');
 
         setTimeout(() => {
           if (role === 'admin') {
-            // Admins are auto-approved
+            console.log('➡️ Admin signup complete, redirecting to dashboard');
             window.location.href = '/admin/dashboard.html';
           } else {
-            // Regular users go to waiting room
+            console.log('➡️ User signup complete, redirecting to waiting page');
             window.location.href = '/user/waiting-approval.html';
           }
         }, 1500);
 
       } catch (error) {
-        console.error('Signup error:', error);
+        console.error('❌ Signup error:', error);
         Toast.error(error?.message || 'Signup failed. Please try again.');
       }
     });
@@ -285,7 +388,7 @@
     forgotForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const email = getById('email')?.value?.trim?.();
+      const email = getById('email')?.value?.trim?.() || '';
 
       if (!email || !Validator.email(email)) {
         Toast.error('Please enter a valid email');
@@ -323,5 +426,5 @@
   });
 
   window.__TM_AUTH_LOADED = true;
-  console.log('✅ Auth handler loaded (v2.0 - FIXED)');
+  console.log('✅ Auth handler loaded (v2.1 - ERROR FIXED)');
 })();
