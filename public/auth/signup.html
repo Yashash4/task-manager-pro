@@ -20,23 +20,23 @@
             <form id="signupForm" class="auth-form">
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="your name" required>
+                    <input type="text" id="username" name="username" placeholder="your name" required>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="your@email.com" required>
+                    <input type="email" id="email" name="email" placeholder="your@email.com" required>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Min 8 chars, 1 number, 1 uppercase" required>
+                    <input type="password" id="password" name="password" placeholder="Min 8 chars, 1 number, 1 uppercase" required>
                     <small class="password-hint">Password strength: <span id="passwordStrength">Weak</span></small>
                 </div>
 
                 <div class="form-group">
                     <label for="role">I am a:</label>
-                    <select id="role" required onchange="toggleRoomCode()">
+                    <select id="role" name="role" required onchange="toggleRoomCode()">
                         <option value="">Select Role</option>
                         <option value="admin">Admin (Create Organization)</option>
                         <option value="user">User (Join Organization)</option>
@@ -45,11 +45,12 @@
 
                 <div class="form-group" id="roomCodeGroup" style="display:none;">
                     <label for="roomCode">Organization Code</label>
-                    <input type="text" id="roomCode" placeholder="Enter 6-character code" maxlength="6">
+                    <input type="text" id="roomCode" name="roomCode" placeholder="Enter 6-character code" maxlength="6">
+                    <small class="password-hint">Ask your admin for the organization code</small>
                 </div>
 
                 <div class="form-group checkbox">
-                    <input type="checkbox" id="terms" required>
+                    <input type="checkbox" id="terms" name="terms" required>
                     <label for="terms">I agree to Terms & Conditions</label>
                 </div>
 
@@ -67,12 +68,169 @@
     <script src="../assets/js/core/utils.js"></script>
     <script src="../assets/js/core/validation.js"></script>
     <script src="../assets/js/core/auth.js"></script>
+    
     <script>
+        // ==========================================
+        // SIGNUP FORM ENHANCEMENTS
+        // ==========================================
+
+        // 1. Toggle room code field based on role selection
         function toggleRoomCode() {
             const role = document.getElementById('role').value;
             const roomCodeGroup = document.getElementById('roomCodeGroup');
-            roomCodeGroup.style.display = role === 'user' ? 'block' : 'none';
+            const roomCodeInput = document.getElementById('roomCode');
+            
+            if (role === 'user') {
+                roomCodeGroup.style.display = 'block';
+                roomCodeInput.focus();
+            } else {
+                roomCodeGroup.style.display = 'none';
+                roomCodeInput.value = ''; // Clear if switching to admin
+            }
         }
+
+        // 2. Auto-convert room code to uppercase
+        const roomCodeInput = document.getElementById('roomCode');
+        if (roomCodeInput) {
+            roomCodeInput.addEventListener('input', function(e) {
+                // Remove non-alphanumeric characters
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+            
+            // Validate length
+            roomCodeInput.addEventListener('blur', function() {
+                if (this.value && this.value.length !== 6) {
+                    // Only show error if user has entered something
+                    if (this.value.length > 0 && this.value.length < 6) {
+                        this.style.borderColor = '#ef4444';
+                    }
+                } else {
+                    this.style.borderColor = '';
+                }
+            });
+
+            roomCodeInput.addEventListener('focus', function() {
+                this.style.borderColor = '';
+            });
+        }
+
+        // 3. Password strength indicator
+        const passwordInput = document.getElementById('password');
+        if (passwordInput) {
+            passwordInput.addEventListener('input', function() {
+                const strength = calculatePasswordStrength(this.value);
+                const indicator = document.getElementById('passwordStrength');
+                if (indicator) {
+                    indicator.textContent = strength.level;
+                    indicator.style.color = strength.color;
+                }
+            });
+
+            // Also check on blur to show requirement
+            passwordInput.addEventListener('blur', function() {
+                const error = validatePasswordRequirements(this.value);
+                if (this.value && error) {
+                    this.style.borderColor = '#ef4444';
+                }
+            });
+
+            passwordInput.addEventListener('focus', function() {
+                this.style.borderColor = '';
+            });
+        }
+
+        function calculatePasswordStrength(pwd) {
+            let strength = 0;
+            if (pwd.length >= 8) strength++;
+            if (pwd.length >= 12) strength++;
+            if (/[a-z]/.test(pwd)) strength++;
+            if (/[A-Z]/.test(pwd)) strength++;
+            if (/[0-9]/.test(pwd)) strength++;
+            if (/[!@#$%^&*]/.test(pwd)) strength++;
+            
+            if (strength <= 2) return { level: 'Weak', color: '#ef4444' };
+            if (strength <= 4) return { level: 'Medium', color: '#f59e0b' };
+            return { level: 'Strong', color: '#22c55e' };
+        }
+
+        function validatePasswordRequirements(pwd) {
+            if (!pwd) return null;
+            if (pwd.length < 8) return 'Password must be at least 8 characters';
+            if (!/[A-Z]/.test(pwd)) return 'Password must contain uppercase letter';
+            if (!/[0-9]/.test(pwd)) return 'Password must contain number';
+            if (!/[!@#$%^&*]/.test(pwd)) return 'Password must contain special character';
+            return null;
+        }
+
+        // 4. Form submission enhancement
+        const signupForm = document.getElementById('signupForm');
+        if (signupForm) {
+            // Clear old error messages on input
+            const inputs = signupForm.querySelectorAll('input[type="text"], input[type="email"], input[type="password"], select');
+            inputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    // Clear previous error styling
+                    this.style.borderColor = '';
+                    const errorDiv = this.parentElement.querySelector('.form-error');
+                    if (errorDiv) {
+                        errorDiv.remove();
+                    }
+                });
+            });
+
+            // Add visual feedback before submit
+            signupForm.addEventListener('submit', function(e) {
+                // The actual validation is done in auth.js
+                // But we can add a loading state here if needed
+                console.log('Signup form submitted, validation in progress...');
+            });
+        }
+
+        // 5. Email format validation
+        const emailInput = document.getElementById('email');
+        if (emailInput) {
+            emailInput.addEventListener('blur', function() {
+                const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.value);
+                if (this.value && !isValid) {
+                    this.style.borderColor = '#ef4444';
+                } else {
+                    this.style.borderColor = '';
+                }
+            });
+
+            emailInput.addEventListener('focus', function() {
+                this.style.borderColor = '';
+            });
+        }
+
+        // 6. Username validation
+        const usernameInput = document.getElementById('username');
+        if (usernameInput) {
+            usernameInput.addEventListener('blur', function() {
+                const isValid = this.value.length >= 3 && /^[\w-]+$/.test(this.value);
+                if (this.value && !isValid) {
+                    this.style.borderColor = '#ef4444';
+                } else {
+                    this.style.borderColor = '';
+                }
+            });
+
+            usernameInput.addEventListener('focus', function() {
+                this.style.borderColor = '';
+            });
+        }
+
+        // 7. Terms checkbox styling
+        const termsCheckbox = document.getElementById('terms');
+        if (termsCheckbox) {
+            termsCheckbox.addEventListener('change', function() {
+                // Optional: add visual feedback
+                console.log('Terms checkbox:', this.checked);
+            });
+        }
+
+        // Initialize role dropdown
+        console.log('✅ Signup form enhancements loaded');
     </script>
 </body>
 </html>

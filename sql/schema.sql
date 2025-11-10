@@ -462,20 +462,51 @@ on rooms for update to public
 using (is_admin(auth.uid()) and created_by = auth.uid());
 
 -- USERS_INFO POLICIES
+
+-- Allow anyone to insert during signup (their own profile)
 drop policy if exists "Allow user signup" on users_info;
-create policy "Allow user signup" on users_info for insert to public with check (true);
+create policy "Allow user signup" on users_info 
+for insert to public 
+with check (auth.uid() = id);
 
+-- Users can view their own profile
 drop policy if exists "Users can view own profile" on users_info;
-create policy "Users can view own profile" on users_info for select to public using (auth.uid() = id);
+create policy "Users can view own profile" on users_info 
+for select to public 
+using (auth.uid() = id);
 
+-- Admins can view all users in their room
 drop policy if exists "Admins can view all users" on users_info;
-create policy "Admins can view all users" on users_info for select to public using (is_admin(auth.uid()));
+create policy "Admins can view all users" on users_info 
+for select to public 
+using (
+  is_admin(auth.uid()) 
+  and room_id = (select room_id from users_info where id = auth.uid())
+);
 
+-- Admins can update users in their room
 drop policy if exists "Admins can update users" on users_info;
-create policy "Admins can update users" on users_info for update to public using (is_admin(auth.uid()));
+create policy "Admins can update users" on users_info 
+for update to public 
+using (
+  is_admin(auth.uid()) 
+  and room_id = (select room_id from users_info where id = auth.uid())
+);
 
-drop policy if exists "Admins can delete users" on users_info;
-create policy "Admins can delete users" on users_info for delete to public using (is_admin(auth.uid()));
+-- Admins can delete users in their room
+drop policy if equals "Admins can delete users" on users_info;
+create policy "Admins can delete users" on users_info 
+for delete to public 
+using (
+  is_admin(auth.uid()) 
+  and room_id = (select room_id from users_info where id = auth.uid())
+);
+
+-- Users can update their own profile
+drop policy if exists "Users can update own profile" on users_info;
+create policy "Users can update own profile" on users_info 
+for update to public 
+using (auth.uid() = id);
 
 -- TASKS POLICIES
 drop policy if exists "Admins can manage tasks" on tasks;

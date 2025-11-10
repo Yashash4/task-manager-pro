@@ -1,6 +1,6 @@
 // ==========================================
-// AUTHENTICATION HANDLER (ERROR FIX v2.1)
-// Fixes: Form validation error at line 18
+// AUTHENTICATION HANDLER (FIXED v2.2)
+// Fixes: Signup form validation, user profile creation, and RLS issues
 // ==========================================
 
 (function () {
@@ -213,7 +213,7 @@
             supabase.auth.signOut();
             window.location.href = '/auth/login.html';
           } else if (profile.status === 'approved') {
-            if (profile.role === 'admin' || profile.role === 'approver') {
+            if (profile.role === 'admin') {
               console.log('➡️ Redirecting to admin dashboard');
               window.location.href = '/admin/dashboard.html';
             } else {
@@ -233,7 +233,7 @@
     });
   }
 
-  // ========== SIGNUP HANDLER (FIXED) ==========
+  // ========== SIGNUP HANDLER (FIXED v2.2) ==========
   if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -242,7 +242,7 @@
       const email = getById('email')?.value?.trim?.() || '';
       const password = getById('password')?.value?.trim?.() || '';
       const role = getById('role')?.value || '';
-      const roomCode = getById('roomCode')?.value?.trim?.() || '';
+      const roomCode = getById('roomCode')?.value?.trim?.()?.toUpperCase?.() || '';
       const terms = getById('terms')?.checked;
 
       console.log('📝 Signup attempt:', { username, email, role, hasRoomCode: !!roomCode });
@@ -287,10 +287,16 @@
       console.log('✅ Validation passed, creating account...');
 
       try {
-        // Create auth user
+        // Step 1: Create auth user
         const { data: authData, error: authErr } = await supabase.auth.signUp({
           email,
-          password
+          password,
+          options: {
+            data: {
+              username: username,
+              role: role
+            }
+          }
         });
 
         if (authErr) {
@@ -306,7 +312,7 @@
 
         console.log('✅ Auth user created:', user.id);
 
-        // Get room ID if user (not admin)
+        // Step 2: Get room ID if user (not admin)
         let roomId = null;
         if (role === 'user') {
           console.log('🔍 Looking up room with code:', roomCode);
@@ -314,17 +320,16 @@
           const { data: room, error: roomErr } = await supabase
             .from('rooms')
             .select('id, name')
-            .eq('current_code', roomCode.toUpperCase())
+            .eq('current_code', roomCode)
             .maybeSingle();
           
-          if (roomErr || !room) {
-            console.error('❌ Invalid room code:', roomCode);
-            // Try to delete the auth user
-            try {
-              await supabase.rpc('delete_user', { user_id: user.id });
-            } catch (deleteErr) {
-              console.warn('Could not delete auth user:', deleteErr);
-            }
+          if (roomErr) {
+            console.error('❌ Room query error:', roomErr);
+            throw new Error('Invalid room code. Please check and try again.');
+          }
+          
+          if (!room) {
+            console.error('❌ Room not found for code:', roomCode);
             throw new Error('Invalid room code. Please check and try again.');
           }
           
@@ -332,38 +337,57 @@
           console.log('✅ Found room:', room.name, '(', room.id, ')');
         }
 
-        // Determine initial status
+        // Step 3: Determine initial status
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
 
         console.log('💾 Creating user profile...');
 
-        // Create user profile
-        const profileData = {
-          id: user.id,
-          username,
-          email,
-          room_id: roomId,
-          role: role,
-          status: initialStatus,
-          joined_at: new Date().toISOString()
-        };
+        // Step 4: Create user profile with retry logic
+        let profileCreated = false;
+        let profileRetries = 3;
 
-        const { error: insertErr } = await supabase
-          .from('users_info')
-          .insert([profileData]);
-
-        if (insertErr) {
-          console.error('❌ Profile insert error:', insertErr);
-          // Try to delete the auth user
+        while (profileRetries > 0 && !profileCreated) {
           try {
-            await supabase.rpc('delete_user', { user_id: user.id });
-          } catch (deleteErr) {
-            console.warn('Could not delete auth user:', deleteErr);
+            const { data: insertedProfile, error: insertErr } = await supabase
+              .from('users_info')
+              .insert([{
+                id: user.id,
+                username: username,
+                email: email,
+                room_id: roomId,
+                role: role,
+                status: initialStatus,
+                joined_at: new Date().toISOString()
+              }])
+              .select();
+
+            if (insertErr) {
+              console.error('❌ Profile insert error:', insertErr);
+              console.error('Error details:', insertErr.details, insertErr.hint);
+              
+              profileRetries--;
+              
+              if (profileRetries > 0) {
+                console.log(`⏳ Retrying profile creation... (${3 - profileRetries}/3)`);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+              } else {
+                throw insertErr;
+              }
+            } else {
+              profileCreated = true;
+              console.log('✅ Profile created successfully:', insertedProfile);
+            }
+          } catch (err) {
+            profileRetries--;
+            if (profileRetries === 0) throw err;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
           }
-          throw insertErr;
         }
 
-        console.log('✅ Profile created successfully');
+        if (!profileCreated) {
+          throw new Error('Failed to create user profile. Please try again.');
+        }
+
         Toast.success('Account created successfully!');
 
         setTimeout(() => {
@@ -378,7 +402,21 @@
 
       } catch (error) {
         console.error('❌ Signup error:', error);
-        Toast.error(error?.message || 'Signup failed. Please try again.');
+        
+        // Provide specific error messages
+        let errorMessage = error?.message || 'Signup failed. Please try again.';
+        
+        if (error?.message?.includes('duplicate')) {
+          errorMessage = 'Email already registered. Please login or use another email.';
+        } else if (error?.message?.includes('Invalid room')) {
+          errorMessage = 'Invalid room code. Please check and try again.';
+        } else if (error?.message?.includes('profile')) {
+          errorMessage = 'Account created but profile setup failed. Please contact support.';
+        } else if (error?.message?.includes('new row violates row level security')) {
+          errorMessage = 'Permission denied. Please contact the administrator.';
+        }
+        
+        Toast.error(errorMessage);
       }
     });
   }
@@ -426,5 +464,5 @@
   });
 
   window.__TM_AUTH_LOADED = true;
-  console.log('✅ Auth handler loaded (v2.1 - ERROR FIXED)');
+  console.log('✅ Auth handler loaded (v2.2 - FIXED SIGNUP)');
 })();
