@@ -152,7 +152,7 @@
           if (profile.status === 'pending') {
             window.location.href = '/user/waiting-approval.html';
           } else if (profile.status === 'approved') {
-            if (profile.role === 'admin' || profile.role_flags?.includes('admin')) {
+            if (profile.role === 'admin') {
               window.location.href = '/admin/dashboard.html';
             } else {
               window.location.href = '/user/dashboard.html';
@@ -269,8 +269,9 @@
 
         // Step 3: Determine initial status
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
+        const initialApproved = role === 'admin' ? true : false;
 
-        console.log('💾 Creating user profile...');
+        console.log('💾 Creating user profile with status:', initialStatus);
 
         // Step 4: Create user profile with BETTER ERROR HANDLING
         let profileCreated = false;
@@ -289,6 +290,7 @@
                 room_id: roomId,
                 role: role,
                 status: initialStatus,
+                approved: initialApproved,
                 joined_at: new Date().toISOString()
               }])
               .select();
@@ -298,7 +300,6 @@
               lastError = insertErr;
               
               if (attempt < 3) {
-                // Wait before retry
                 await new Promise(r => setTimeout(r, 1000));
               }
             } else {
