@@ -152,7 +152,8 @@
           if (profile.status === 'pending') {
             window.location.href = '/user/waiting-approval.html';
           } else if (profile.status === 'approved') {
-            if (profile.role === 'admin') {
+            // **FIX**: Check role_flags, not role
+            if (profile.role_flags?.includes('admin')) {
               window.location.href = '/admin/dashboard.html';
             } else {
               window.location.href = '/user/dashboard.html';
@@ -232,7 +233,7 @@
           options: {
             data: {
               username: username,
-              role: role
+              role: role // This saves to raw_user_meta_data
             }
           }
         });
@@ -289,11 +290,13 @@
                 email: email,
                 room_id: roomId,
                 role: role,
+                role_flags: [role], // <-- FIX: Set role_flags to match the selected role
                 status: initialStatus,
                 approved: initialApproved,
                 joined_at: new Date().toISOString()
               }])
-              .select();
+              // .select(); // <-- FIX: Removed .select() to avoid 500 error from recursive RLS policies
+              // Without .select(), 'profile' will be null, but 'insertErr' will be null on success.
 
             if (insertErr) {
               console.error(`❌ Attempt ${attempt} failed:`, insertErr);
@@ -303,7 +306,7 @@
                 await new Promise(r => setTimeout(r, 1000));
               }
             } else {
-              console.log('✅ Profile created successfully:', profile);
+              console.log('✅ Profile created successfully (no .select())');
               profileCreated = true;
               break;
             }

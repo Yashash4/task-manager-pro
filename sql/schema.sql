@@ -30,10 +30,11 @@ CREATE TABLE public.rooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   current_code TEXT NOT NULL UNIQUE,
-  created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  -- created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, -- This was the inconsistency
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   description TEXT
+  -- NOTE: created_by will be added after users_info exists, to avoid circular reference
 );
 
 -- 2. USERS_INFO TABLE
@@ -52,7 +53,12 @@ CREATE TABLE public.users_info (
   promoted_by UUID REFERENCES auth.users(id) ON DELETE SET NULL
 );
 
--- 3. TASKS TABLE
+-- 3. ADD created_by to ROOMS TABLE (now that users_info exists)
+ALTER TABLE public.rooms
+ADD COLUMN created_by UUID NOT NULL REFERENCES public.users_info(id) ON DELETE CASCADE;
+
+
+-- 4. TASKS TABLE
 CREATE TABLE public.tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id UUID NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
@@ -75,7 +81,7 @@ CREATE TABLE public.tasks (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- 4. NOTIFICATIONS TABLE
+-- 5. NOTIFICATIONS TABLE
 CREATE TABLE public.notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.users_info(id) ON DELETE CASCADE,
@@ -87,7 +93,7 @@ CREATE TABLE public.notifications (
   read_at TIMESTAMP WITH TIME ZONE
 );
 
--- 5. TASK ACTIVITY LOG TABLE
+-- 6. TASK ACTIVITY LOG TABLE
 CREATE TABLE public.task_activity_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES public.tasks(id) ON DELETE CASCADE,
@@ -98,7 +104,7 @@ CREATE TABLE public.task_activity_log (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- 6. ROOMS HISTORY TABLE
+-- 7. ROOMS HISTORY TABLE
 CREATE TABLE public.rooms_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id UUID NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
@@ -189,6 +195,7 @@ CREATE POLICY "public_can_read_rooms" ON public.rooms
 FOR SELECT
 USING (true);
 
+-- Policy now checks auth.uid() against the created_by column (which is a UUID from users_info)
 CREATE POLICY "admin_can_create_rooms" ON public.rooms
 FOR INSERT
 WITH CHECK (created_by = auth.uid());
