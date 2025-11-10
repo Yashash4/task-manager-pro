@@ -1,32 +1,26 @@
 // ==========================================
-// AUTHENTICATION HANDLER (with safe fallbacks)
+// AUTHENTICATION HANDLER (UPDATED)
 // ==========================================
 
 (function () {
   // ---- Safe fallbacks for missing global helpers ----
-  // Validator fallback (simple email check)
   const Validator = window.Validator || {
     email: (v) => {
       if (!v) return false;
-      // simple RFC-lite email regex
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
     }
   };
 
-  // Toast fallback (non-intrusive)
   const Toast = window.Toast || {
     success: (msg) => {
-      // prefer console; avoid blocking alerts except for errors
       console.log('[Toast success]', msg);
     },
     error: (msg) => {
       console.error('[Toast error]', msg);
-      // also show a minimal alert so user sees critical failures
       try { alert(msg); } catch (e) { /* ignore */ }
     }
   };
 
-  // FormValidator fallback: validateForm, validatePassword, validateUsername, showErrors
   const FormValidator = window.FormValidator || {
     validatePassword: (v) => {
       if (!v || v.length < 6) return 'Password must be at least 6 characters';
@@ -35,7 +29,6 @@
     validateUsername: (v) => {
       if (!v) return 'Username is required';
       if (v.length < 3) return 'Username must be at least 3 characters';
-      // optional: restrict to letters, numbers, _ and -
       if (!/^[\w-]+$/.test(v)) return 'Username contains invalid characters';
       return null;
     },
@@ -48,19 +41,16 @@
           const err = validatorFn(val);
           if (err) errors[key] = err;
         } catch (e) {
-          // ignore validator exceptions and treat as no error
           console.warn('Validator threw for', key, e);
         }
       }
       return Object.keys(errors).length ? errors : null;
     },
     showErrors: (errors, formId) => {
-      // Log errors; add .field-error class to inputs if present
       console.warn('Form validation errors:', errors);
       try {
         const form = document.getElementById(formId);
         if (!form) return;
-        // clear previous error markers
         form.querySelectorAll('.field-error').forEach((el) => el.classList.remove('field-error'));
         for (const name of Object.keys(errors)) {
           const input = form.querySelector(`[name="${name}"], #${name}`);
@@ -72,10 +62,8 @@
     }
   };
 
-  // ---- small helper to replace missing global DOM helper ----
   const getById = (id) => document.getElementById(id);
 
-  // safe reset (some browsers throw if form is null)
   const safeReset = (form) => {
     try {
       form?.reset?.();
@@ -84,7 +72,6 @@
     }
   };
 
-  // Ensure Supabase client exists at runtime
   const supabase = window.SUPABASE?.client?.();
   if (!supabase) {
     console.error('Supabase not initialized');
@@ -124,7 +111,7 @@
         const user = authData?.user;
         if (!user) throw new Error('Login failed');
 
-        // Get user profile
+        // Get user profile with retries
         let profile = null;
         let retries = 3;
 
@@ -145,23 +132,33 @@
 
         if (!profile) throw new Error('Profile not found');
 
-        if (!profile.approved) {
-          await supabase.auth.signOut();
-          Toast.error('Your account is pending approval from admin');
-          return;
-        }
-
         Toast.success('Login successful!');
 
-        // Redirect based on role
-        const role = (profile.role_flags && profile.role_flags[0]) || 'user';
+        // Redirect based on role and status
         setTimeout(() => {
-          if (role === 'admin' || role === 'super_admin') {
-            window.location.href = '/admin/dashboard.html';
-          } else {
-            window.location.href = '/user/dashboard.html';
+          if (profile.status === 'pending') {
+            // New user waiting for approval
+            window.location.href = '/user/waiting-approval.html';
+          } else if (profile.status === 'rejected') {
+            // User was rejected
+            alert('Your account registration was rejected. Please contact the admin.');
+            supabase.auth.signOut();
+            window.location.href = '/auth/login.html';
+          } else if (profile.status === 'suspended') {
+            // User is suspended
+            alert('Your account has been suspended. Please contact the admin.');
+            supabase.auth.signOut();
+            window.location.href = '/auth/login.html';
+          } else if (profile.status === 'approved') {
+            // User is approved, redirect by role
+            if (profile.role === 'admin') {
+              window.location.href = '/admin/dashboard.html';
+            } else {
+              window.location.href = '/user/dashboard.html';
+            }
           }
         }, 1000);
+
       } catch (error) {
         console.error('Login error:', error);
         Toast.error(error?.message || 'Login failed');
@@ -236,32 +233,35 @@
           roomId = room.id;
         }
 
+        // Determine initial status
+        const initialStatus = role === 'admin' ? 'approved' : 'pending';
+
         // Create user profile
         const profileData = {
           id: user.id,
           username,
           email,
           room_id: roomId,
-          role_flags: [role],
-          approved: role === 'admin',
+          role: role,
+          status: initialStatus,
           joined_at: new Date().toISOString()
         };
 
         const { error: insertErr } = await supabase.from('users_info').insert([profileData]);
         if (insertErr) throw insertErr;
 
-        const message =
-          role === 'admin' ? 'Admin account created! Redirecting...' : 'Account created! Awaiting admin approval...';
-
-        Toast.success(message);
+        Toast.success('Account created successfully!');
 
         setTimeout(() => {
           if (role === 'admin') {
+            // Admins are auto-approved and logged in
             window.location.href = '/admin/dashboard.html';
           } else {
+            // Regular users go to waiting room
             window.location.href = '/auth/login.html';
           }
         }, 1500);
+
       } catch (error) {
         console.error('Signup error:', error);
         Toast.error(error?.message || 'Signup failed');
@@ -310,8 +310,7 @@
     });
   });
 
-  // Expose for debugging if needed
   window.__TM_AUTH_LOADED = true;
 })();
 
-console.log('? Auth handler loaded');
+console.log('✅ Auth handler loaded');

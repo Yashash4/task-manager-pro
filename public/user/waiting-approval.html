@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Pending Approval - Task Manager Pro</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .pending-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+        }
+        .pending-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 3rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.5s ease-out;
+        }
+        .pending-icon {
+            font-size: 4rem;
+            color: var(--warning-color);
+            margin-bottom: 1.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .pending-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .pending-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .pending-details {
+            background: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .tips-box {
+            background: rgba(34, 211, 238, 0.1);
+            border-left: 4px solid var(--primary-color);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        .tips-title {
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        .tips-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .tips-list li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        .tips-list li::before {
+            content: '✓ ';
+            color: var(--success-color);
+            margin-right: 0.5rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .status-badge {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning-color);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(34, 211, 238, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="pending-container">
+    <div class="pending-card">
+        <div class="pending-icon">
+            <i class="fas fa-hourglass-half"></i>
+        </div>
+        
+        <h1 class="pending-title">Account Pending Approval</h1>
+        
+        <p class="pending-subtitle">
+            Your account has been created successfully, but it's waiting for admin approval before you can access the application.
+        </p>
+
+        <div class="status-badge">
+            <span class="spinner"></span> Waiting for Review
+        </div>
+
+        <div class="pending-details">
+            <div class="detail-item">
+                <span class="detail-label">Username:</span>
+                <span class="detail-value" id="displayUsername">Loading...</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Email:</span>
+                <span class="detail-value" id="displayEmail">Loading...</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Organization:</span>
+                <span class="detail-value" id="displayOrg">Loading...</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Joined:</span>
+                <span class="detail-value" id="displayJoined">Loading...</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value" style="color: var(--warning-color);">⏳ Pending</span>
+            </div>
+        </div>
+
+        <div class="tips-box">
+            <div class="tips-title">What happens next?</div>
+            <ul class="tips-list">
+                <li>Admin will review your account details</li>
+                <li>You'll receive a notification when approved</li>
+                <li>Typical approval time: 24-48 hours</li>
+                <li>You can close this browser and check back later</li>
+            </ul>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary refresh-btn" onclick="checkApprovalStatus()">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i> Check Status
+            </button>
+            <button class="btn btn-secondary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+
+        <p class="text-muted" style="margin-top: 2rem; font-size: 0.9rem;">
+            Still waiting? Contact the admin for more information.
+        </p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/core/supabaseClient.js"></script>
+    <script src="../assets/js/core/utils.js"></script>
+    <script>
+        (async function () {
+            const supabase = window.SUPABASE?.client?.();
+            if (!supabase) return;
+
+            let checkCount = 0;
+            const MAX_CHECKS = 5;
+
+            async function init() {
+                try {
+                    const user = await API.getCurrentUser();
+                    if (!user) {
+                        window.location.href = '/auth/login.html';
+                        return;
+                    }
+
+                    const profile = await API.getUserProfile(user.id);
+                    if (!profile) {
+                        await supabase.auth.signOut();
+                        window.location.href = '/auth/login.html';
+                        return;
+                    }
+
+                    // Check if already approved
+                    if (profile.status === 'approved') {
+                        if (profile.role === 'admin') {
+                            window.location.href = '/admin/dashboard.html';
+                        } else {
+                            window.location.href = '/user/dashboard.html';
+                        }
+                        return;
+                    }
+
+                    // Check if rejected
+                    if (profile.status === 'rejected') {
+                        DOM.id('displayUsername').textContent = profile.username;
+                        DOM.id('displayEmail').textContent = profile.email;
+                        document.querySelector('.pending-title').textContent = 'Account Rejected';
+                        document.querySelector('.pending-icon').innerHTML = '<i class="fas fa-times-circle" style="color: var(--danger-color);"></i>';
+                        document.querySelector('.status-badge').innerHTML = '<span style="color: var(--danger-color);">❌ Rejected</span>';
+                        document.querySelector('.tips-box').innerHTML = '<div class="tips-title" style="color: var(--danger-color);">Your application was not approved</div><p style="color: var(--text-secondary);">Please contact the administrator for more details or try registering again with different information.</p>';
+                        return;
+                    }
+
+                    // Display user info
+                    DOM.setText(DOM.id('displayUsername'), profile.username);
+                    DOM.setText(DOM.id('displayEmail'), profile.email);
+
+                    // Get room name
+                    if (profile.room_id) {
+                        const { data: room } = await supabase
+                            .from('rooms')
+                            .select('name')
+                            .eq('id', profile.room_id)
+                            .single();
+                        
+                        if (room) {
+                            DOM.setText(DOM.id('displayOrg'), room.name);
+                        }
+                    }
+
+                    DOM.setText(DOM.id('displayJoined'), new Date(profile.joined_at).toLocaleString());
+
+                } catch (error) {
+                    console.error('Init error:', error);
+                    Toast.error('Failed to load profile');
+                }
+            }
+
+            window.checkApprovalStatus = async () => {
+                checkCount++;
+                const refreshIcon = DOM.id('refreshIcon');
+                refreshIcon.style.animation = 'spin 1s linear infinite';
+
+                try {
+                    const user = await API.getCurrentUser();
+                    if (!user) {
+                        window.location.href = '/auth/login.html';
+                        return;
+                    }
+
+                    const profile = await API.getUserProfile(user.id);
+                    if (!profile) throw new Error('Profile not found');
+
+                    if (profile.status === 'approved') {
+                        Toast.success('Great! Your account has been approved!');
+                        setTimeout(() => {
+                            if (profile.role === 'admin') {
+                                window.location.href = '/admin/dashboard.html';
+                            } else {
+                                window.location.href = '/user/dashboard.html';
+                            }
+                        }, 1500);
+                        return;
+                    }
+
+                    if (profile.status === 'rejected') {
+                        Toast.error('Unfortunately, your account was rejected.');
+                        setTimeout(() => window.location.reload(), 2000);
+                        return;
+                    }
+
+                    Toast.info(`Still pending... (Checked ${checkCount}/${MAX_CHECKS} times)`);
+
+                    if (checkCount >= MAX_CHECKS) {
+                        Toast.warning('Maximum checks reached. Please try again later.');
+                    }
+
+                } catch (error) {
+                    console.error('Check status error:', error);
+                    Toast.error('Failed to check status');
+                } finally {
+                    refreshIcon.style.animation = 'none';
+                }
+            };
+
+            window.logout = async () => {
+                try {
+                    await supabase.auth.signOut();
+                    window.location.href = '/index.html';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            };
+
+            document.addEventListener('DOMContentLoaded', init);
+        })();
+    </script>
+</body>
+</html>

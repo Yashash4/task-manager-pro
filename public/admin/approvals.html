@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Approvals - Task Manager Pro</title>
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/components/buttons-forms.css">
+    <link rel="stylesheet" href="../assets/css/components/tables-badges.css">
+    <link rel="stylesheet" href="../assets/css/components/modals-notifications.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-dot"></span> Task Manager Pro
+            </div>
+            <div class="nav-links">
+                <span class="text-secondary" id="orgName">Organization</span>
+                <button class="btn btn-secondary btn-sm" data-logout>Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="wrapper">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="dashboard.html">📊 Dashboard</a></li>
+                <li><a href="tasks.html">✅ Tasks</a></li>
+                <li><a href="approvals.html" class="active">👥 Approvals</a></li>
+                <li><a href="users.html">👤 Users</a></li>
+                <li><a href="rooms.html">🏢 Rooms</a></li>
+                <li><a href="reports.html">📈 Reports</a></li>
+                <li><a href="settings.html">⚙️ Settings</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="card">
+                <div class="card-header flex-between">
+                    <h1 class="card-title">
+                        <i class="fas fa-hourglass-end" style="color: var(--warning-color);"></i> Pending Approvals
+                    </h1>
+                    <div>
+                        <span id="pendingBadge" class="badge badge-warning">0</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="flex mb-2">
+                        <input type="text" placeholder="Search by username or email..." id="searchInput" class="flex-1" style="margin-right: 10px;">
+                        <select id="statusFilter">
+                            <option value="pending">Pending Only</option>
+                            <option value="all">All Users</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+
+                    <div id="approvalsContainer">
+                        <p class="text-muted">Loading approvals...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Users Section -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h2 class="card-title">⏳ Waiting for Approval</h2>
+                </div>
+                <div class="card-body">
+                    <table class="table" id="pendingTable">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Joined Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingBody">
+                            <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Approved Users Section -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h2 class="card-title">✅ Approved Users</h2>
+                </div>
+                <div class="card-body">
+                    <table class="table" id="approvedTable">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Approved Date</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvedBody">
+                            <tr><td colspan="5" class="text-center">No approved users yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Approval Detail Modal -->
+    <div class="modal-overlay hidden" id="approvalModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>User Details & Approval</h2>
+                <button onclick="closeApprovalModal()" class="btn btn-secondary btn-sm">X</button>
+            </div>
+            <div class="modal-body" id="approvalContent">
+                Loading...
+            </div>
+            <div class="modal-footer" id="approvalFooter">
+            </div>
+        </div>
+    </div>
+
+    <!-- Rejection Reason Modal -->
+    <div class="modal-overlay hidden" id="rejectionModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2>Reject User</h2>
+                <button onclick="closeRejectionModal()" class="btn btn-secondary btn-sm">X</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Reason for Rejection</label>
+                    <textarea id="rejectionReason" placeholder="Provide a reason..." style="min-height: 100px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeRejectionModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="confirmReject()" class="btn btn-danger">Reject User</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+    <script src="../assets/js/core/supabaseClient.js"></script>
+    <script src="../assets/js/core/utils.js"></script>
+    <script src="../assets/js/core/validation.js"></script>
+    <script src="../assets/js/core/auth.js"></script>
+    <script src="../assets/js/admin/approvals.js"></script>
+</body>
+</html>
