@@ -22,8 +22,8 @@
 
 
 // ==========================================
-// AUTHENTICATION HANDLER - COMPLETE WORKING VERSION
-// Fixed: duplicate PK by using UPSERT on users_info
+// AUTHENTICATION HANDLER - FIXED VERSION
+// Using INSERT instead of UPSERT (no conflict with RLS)
 // ==========================================
 
 (function () {
@@ -195,7 +195,7 @@
     });
   }
 
-  // ========== SIGNUP HANDLER (FIXED: uses UPSERT) ==========
+  // ========== SIGNUP HANDLER (FIXED: INSERT ONLY) ==========
   const signupForm = getById('signupForm');
   if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
@@ -295,13 +295,12 @@
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
         const initialApproved = role === 'admin' ? true : false;
 
-        console.log('💾 UPSERT user profile with status:', initialStatus);
+        console.log('💾 INSERT user profile with status:', initialStatus);
 
-        // --------------------------------------------
-        // CHANGED: UPSERT instead of INSERT (+ conflict on id)
-        // This avoids 23505 on retries / network glitches.
-        // RLS must allow INSERT (id = auth.uid()) and UPDATE (auth.uid() = id).
-        // --------------------------------------------
+        // ============================================
+        // CHANGED: Using INSERT instead of UPSERT
+        // This respects RLS policies properly
+        // ============================================
         const payload = {
           id: user.id,
           username: username,
@@ -314,19 +313,29 @@
           joined_at: new Date().toISOString()
         };
 
-        const { error: upsertErr } = await supabase
+        const { data: profileData, error: insertErr } = await supabase
           .from('users_info')
-          .upsert(payload, { onConflict: 'id' })   // <-- key line
+          .insert([payload])
           .select()
           .single();
 
-        if (upsertErr) {
-          console.error('❌ Profile upsert error:', upsertErr);
-          if (upsertErr.code === '23505') {
+        if (insertErr) {
+          console.error('❌ Profile insert error:', insertErr);
+          
+          // If insert failed, try to delete the auth user
+          try {
+            await supabase.auth.admin.deleteUser(user.id);
+          } catch (deleteErr) {
+            console.warn('Could not delete auth user:', deleteErr);
+          }
+          
+          if (insertErr.code === '23505') {
             throw new Error('Username or email already in use.');
           }
-          throw upsertErr;
+          throw insertErr;
         }
+
+        console.log('✅ Profile inserted successfully');
 
         Toast.success('Account created successfully! Logging in...');
 
@@ -350,7 +359,9 @@
         } else if (error?.message?.includes('Invalid room')) {
           errorMessage = 'Invalid room code. Please check and try again.';
         } else if (error?.message?.includes('policy')) {
-          errorMessage = 'Permission denied. Please contact support.';
+          errorMessage = 'Permission denied. Please check your input and try again.';
+        } else if (error?.message?.includes('duplicate')) {
+          errorMessage = 'Username or email already exists.';
         }
 
         Toast.error(errorMessage);
@@ -399,5 +410,5 @@
     });
   });
 
-  console.log('✅ Auth handler loaded (UPSERT profile enabled)');
+  console.log('✅ Auth handler loaded (INSERT profile enabled)');
 })();

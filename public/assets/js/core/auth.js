@@ -142,7 +142,7 @@
     });
   }
 
-  // ========== SIGNUP HANDLER (UPSERT FIXED) ==========
+  // ========== SIGNUP HANDLER (FIXED: INSERT ONLY) ==========
   const signupForm = getById('signupForm');
   if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
@@ -198,10 +198,11 @@
         const initialStatus = role === 'admin' ? 'approved' : 'pending';
         const initialApproved = role === 'admin' ? true : false;
 
-        // ✅ UPSERT instead of INSERT
-        const { error: upsertErr } = await supabase
+        // ✅ FIXED: Using INSERT instead of UPSERT
+        // This respects RLS policies correctly
+        const { data: profileData, error: insertErr } = await supabase
           .from('users_info')
-          .upsert(
+          .insert([
             {
               id: user.id,
               username,
@@ -212,15 +213,15 @@
               status: initialStatus,
               approved: initialApproved,
               joined_at: new Date().toISOString(),
-            },
-            { onConflict: 'id' }
-          )
+            }
+          ])
           .select()
           .single();
 
-        if (upsertErr) {
-          if (upsertErr.code === '23505') throw new Error('Username or email already in use.');
-          throw upsertErr;
+        if (insertErr) {
+          console.error('Insert error:', insertErr);
+          if (insertErr.code === '23505') throw new Error('Username or email already in use.');
+          throw insertErr;
         }
 
         Toast.success('Account created successfully! Logging in...');
@@ -267,5 +268,5 @@
     });
   });
 
-  console.log('✅ Auth handler loaded (UPSERT profile fix)');
+  console.log('✅ Auth handler loaded (INSERT profile enabled)');
 })();
