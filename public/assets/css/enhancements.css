@@ -1,457 +1,502 @@
 /* ==========================================
-   BUTTONS & FORMS STYLESHEET
-   Path: /public/assets/css/components/buttons-forms.css
+   ENHANCED VISUAL FEATURES & ANIMATIONS
+   Additional polish and professional touches
    ========================================== */
 
 /* ==========================================
-   BUTTONS
+   SMOOTH SCROLLING & PAGE TRANSITIONS
    ========================================== */
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: var(--transition);
-  text-decoration: none;
-  text-align: center;
-  white-space: nowrap;
-  font-family: inherit;
-  line-height: 1.5;
+* {
+  scroll-behavior: smooth;
 }
 
-.btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+body {
+  animation: fadeIn 0.5s ease-out;
 }
 
-.btn:active {
-  transform: translateY(0);
+/* Loading indicator */
+.loading {
+  display: inline-block;
+  position: relative;
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Button Variants */
-.btn-primary {
-  background-color: var(--primary-color);
-  color: var(--bg-dark);
-}
-
-.btn-primary:hover {
-  background-color: var(--primary-dark);
-}
-
-.btn-secondary {
-  background-color: var(--bg-light);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-  background-color: var(--border-color);
-  color: var(--text-primary);
-}
-
-.btn-danger {
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #dc2626;
-}
-
-.btn-success {
-  background-color: var(--success-color);
-  color: white;
-}
-
-.btn-success:hover {
-  background-color: #16a34a;
-}
-
-.btn-warning {
-  background-color: var(--warning-color);
-  color: white;
-}
-
-.btn-warning:hover {
-  background-color: #d97706;
-}
-
-.btn-info {
-  background-color: var(--info-color);
-  color: white;
-}
-
-.btn-info:hover {
-  background-color: #2563eb;
-}
-
-.btn-outline {
-  background-color: transparent;
+.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
   border: 2px solid var(--primary-color);
-  color: var(--primary-color);
-}
-
-.btn-outline:hover {
-  background-color: var(--primary-color);
-  color: var(--bg-dark);
-}
-
-/* Button Sizes */
-.btn-block {
-  width: 100%;
-  display: flex;
-}
-
-.btn-lg {
-  padding: 14px 28px;
-  font-size: 1.1rem;
-}
-
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 0.9rem;
-}
-
-.btn-xs {
-  padding: 4px 8px;
-  font-size: 0.85rem;
-}
-
-/* Icon Buttons */
-.btn-icon {
-  padding: 8px;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-md);
-  background-color: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: var(--transition);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-icon:hover {
-  background-color: var(--bg-light);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
-  transform: translateY(-2px);
-}
-
-.btn-icon.btn-danger {
-  border-color: var(--danger-color);
-  color: var(--danger-color);
-}
-
-.btn-icon.btn-danger:hover {
-  background-color: var(--danger-color);
-  color: white;
-}
-
-.btn-icon.btn-success {
-  border-color: var(--success-color);
-  color: var(--success-color);
-}
-
-.btn-icon.btn-success:hover {
-  background-color: var(--success-color);
-  color: white;
-}
-
-/* Action Buttons Group */
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-left: 8px;
 }
 
 /* ==========================================
-   FORMS & INPUTS
+   ENHANCED CARD EFFECTS
    ========================================== */
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-glow::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(34, 211, 238, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  transition: var(--transition);
+}
+
+.card-glow:hover::before {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+/* ==========================================
+   GRADIENT BACKGROUNDS
+   ========================================== */
+
+.gradient-bg-1 {
+  background: linear-gradient(135deg, var(--bg-dark), var(--bg-darker));
+}
+
+.gradient-bg-2 {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+}
+
+.gradient-bg-3 {
+  background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 50%, var(--bg-darker) 100%);
+}
+
+/* Animated gradient border */
+.gradient-border {
+  position: relative;
+  background: var(--bg-light);
+  border-radius: var(--radius-lg);
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  padding: 2px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* ==========================================
+   ENHANCED HOVER EFFECTS
+   ========================================== */
+
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 30px rgba(34, 211, 238, 0.2);
+}
+
+.hover-scale {
+  transition: transform 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.4);
+}
+
+/* ==========================================
+   GLASSMORPHISM EFFECTS
+   ========================================== */
+
+.glass {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+/* ==========================================
+   ENHANCED BADGES WITH GLOW
+   ========================================== */
+
+.badge-glow {
+  box-shadow: 0 0 10px currentColor;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px currentColor; }
+  50% { box-shadow: 0 0 20px currentColor; }
+}
+
+/* ==========================================
+   SKELETON LOADERS
+   ========================================== */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-light) 25%,
+    var(--bg-darker) 50%,
+    var(--bg-light) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-title {
+  height: 1.5rem;
+  width: 60%;
   margin-bottom: 1rem;
 }
 
-.form-group label {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--text-primary);
+.skeleton-card {
+  height: 150px;
+  border-radius: var(--radius-lg);
 }
 
-.form-group.checkbox {
-  flex-direction: row;
-  align-items: center;
-}
+/* ==========================================
+   ENHANCED TOOLTIPS
+   ========================================== */
 
-.form-group.checkbox input {
-  width: auto;
-  margin-right: 0.5rem;
-}
-
-.form-group.checkbox label {
-  margin-bottom: 0;
-  font-weight: 500;
-}
-
-/* Input Fields */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="date"],
-input[type="number"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
-select,
-textarea {
-  padding: 10px 12px;
-  background-color: var(--bg-darker);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 1rem;
-  transition: var(--transition);
-  width: 100%;
-}
-
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="password"]:focus,
-input[type="date"]:focus,
-input[type="number"]:focus,
-input[type="search"]:focus,
-input[type="tel"]:focus,
-input[type="url"]:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
-  background-color: var(--bg-light);
-}
-
-input::placeholder,
-textarea::placeholder {
-  color: var(--text-muted);
-}
-
-input:disabled,
-select:disabled,
-textarea:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Input with icon */
-.input-group {
+[data-tooltip] {
   position: relative;
-  display: flex;
-  align-items: center;
+  cursor: pointer;
 }
 
-.input-group input {
-  padding-left: 40px;
-}
-
-.input-group .input-icon {
+[data-tooltip]::before {
+  content: attr(data-tooltip);
   position: absolute;
-  left: 12px;
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
-/* Select Dropdown */
-.select {
-  padding: 10px 12px;
-  background-color: var(--bg-darker);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 1rem;
-  width: 100%;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  padding-right: 40px;
-}
-
-.select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
-}
-
-/* Textarea */
-textarea {
-  resize: vertical;
-  min-height: 120px;
-  font-family: inherit;
-  line-height: 1.5;
-}
-
-textarea.no-resize {
-  resize: none;
-}
-
-/* Checkbox Styling */
-input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--primary-color);
-}
-
-input[type="radio"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  accent-color: var(--primary-color);
-}
-
-/* Form validation states */
-.form-group.error input,
-.form-group.error select,
-.form-group.error textarea {
-  border-color: var(--danger-color);
-}
-
-.form-group.success input,
-.form-group.success select,
-.form-group.success textarea {
-  border-color: var(--success-color);
-}
-
-.form-error {
-  color: var(--danger-color);
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
-}
-
-.form-success {
-  color: var(--success-color);
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
-}
-
-/* Form hints */
-.form-hint,
-.password-hint {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
-}
-
-.password-hint span {
-  font-weight: 600;
-}
-
-/* Search Input */
-input[type="search"] {
-  padding-left: 40px;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3ccircle cx='11' cy='11' r='8'%3e%3c/circle%3e%3cpath d='m21 21-4.35-4.35'%3e%3c/path%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: left 12px center;
-  background-size: 18px;
-}
-
-/* File Input */
-input[type="file"] {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
   padding: 8px 12px;
   background-color: var(--bg-darker);
+  color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
-  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 1000;
 }
 
-input[type="file"]::file-selector-button {
-  padding: 6px 12px;
-  background-color: var(--primary-color);
-  color: var(--bg-dark);
-  border: none;
+[data-tooltip]::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--bg-darker);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-12px);
+}
+
+/* ==========================================
+   RIPPLE EFFECT
+   ========================================== */
+
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.ripple:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* ==========================================
+   ENHANCED INPUT FOCUS EFFECTS
+   ========================================== */
+
+.input-fancy {
+  position: relative;
+}
+
+.input-fancy input:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 211, 238, 0.2);
+}
+
+/* ==========================================
+   SCROLL PROGRESS INDICATOR
+   ========================================== */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  z-index: 9999;
+  transition: width 0.1s ease;
+}
+
+/* ==========================================
+   ENHANCED NOTIFICATIONS
+   ========================================== */
+
+.notification-badge-pulse {
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+/* ==========================================
+   FLOATING ANIMATION
+   ========================================== */
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+/* ==========================================
+   NEON TEXT EFFECT
+   ========================================== */
+
+.neon-text {
+  text-shadow:
+    0 0 10px var(--primary-color),
+    0 0 20px var(--primary-color),
+    0 0 30px var(--primary-color);
+  animation: neon-flicker 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes neon-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* ==========================================
+   ENHANCED FOCUS STATES
+   ========================================== */
+
+*:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  margin-right: 10px;
-  font-weight: 600;
 }
 
-input[type="file"]::file-selector-button:hover {
-  background-color: var(--primary-dark);
+/* Remove default focus for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
 }
 
-/* Toolbar */
-.toolbar {
-  display: flex;
-  gap: 10px;
-  margin-top: 1rem;
-  flex-wrap: wrap;
+/* ==========================================
+   STATUS INDICATORS
+   ========================================== */
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
 }
 
-.toolbar.vertical {
-  flex-direction: column;
+.status-dot.online {
+  background-color: var(--success-color);
+  box-shadow: 0 0 8px var(--success-color);
+  animation: pulse 2s ease-in-out infinite;
 }
 
-/* Responsive Forms */
-@media (max-width: 768px) {
-  .btn {
-    padding: 8px 16px;
-    font-size: 0.95rem;
-  }
-  
-  .btn-lg {
-    padding: 10px 20px;
-    font-size: 1rem;
-  }
-  
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  input[type="date"],
-  input[type="number"],
-  input[type="search"],
-  select,
-  textarea {
-    font-size: 16px; /* Prevents zoom on iOS */
+.status-dot.offline {
+  background-color: var(--text-muted);
+}
+
+.status-dot.busy {
+  background-color: var(--warning-color);
+  box-shadow: 0 0 8px var(--warning-color);
+}
+
+/* ==========================================
+   PARALLAX EFFECT
+   ========================================== */
+
+.parallax {
+  transform-style: preserve-3d;
+  transition: transform 0.5s ease;
+}
+
+.parallax:hover {
+  transform: perspective(1000px) rotateY(5deg);
+}
+
+/* ==========================================
+   TEXT SELECTION
+   ========================================== */
+
+::selection {
+  background-color: rgba(34, 211, 238, 0.3);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background-color: rgba(34, 211, 238, 0.3);
+  color: var(--text-primary);
+}
+
+/* ==========================================
+   CUSTOM SCROLLBAR
+   ========================================== */
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-darker);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-darker);
+}
+
+/* ==========================================
+   ACCESSIBILITY IMPROVEMENTS
+   ========================================== */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-@media (max-width: 480px) {
-  .action-buttons {
-    flex-direction: column;
-    width: 100%;
+/* ==========================================
+   PRINT STYLES
+   ========================================== */
+
+@media print {
+  .no-print,
+  .navbar,
+  .topbar,
+  .footer,
+  .btn,
+  button {
+    display: none !important;
   }
-  
-  .action-buttons .btn,
-  .action-buttons .btn-icon {
-    width: 100%;
+
+  body {
+    background: white;
+    color: black;
   }
-  
-  .btn-icon {
-    width: 100%;
-    justify-content: center;
+
+  .card {
+    border: 1px solid #000;
+    box-shadow: none;
+    page-break-inside: avoid;
   }
 }
